@@ -1,184 +1,115 @@
 import { db } from "@/db";
-import {
-  specDomains,
-  specs,
-  requirements,
-  scenarios,
-  projects,
-  changes,
-  deltaSpecs,
-} from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
+import Link from "next/link";
+import { eq } from "drizzle-orm";
+import { projects, specDomains, specs, requirements, scenarios } from "@/db/schema";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, BookOpen, ListChecks, ListTree } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function SpecDetailPage({
+const strengthColor: Record<string, "slate" | "info" | "warning" | "success" | "purple" | "destructive"> = {
+  SHALL: "info",
+  MUST: "destructive",
+  SHOULD: "warning",
+  MAY: "slate",
+};
+
+export default async function DomainSpecPage({
   params,
 }: {
   params: Promise<{ id: string; domainId: string }>;
 }) {
-  const { id: projectId, domainId } = await params;
+  const { id, domainId } = await params;
+  const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  if (!project) return notFound();
 
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
-  if (!project) notFound();
+  const [domain] = await db.select().from(specDomains).where(eq(specDomains.id, domainId)).limit(1);
+  if (!domain) return notFound();
 
-  const [domain] = await db
-    .select()
-    .from(specDomains)
-    .where(eq(specDomains.id, domainId));
-  if (!domain) notFound();
-
-  const [spec] = await db.select().from(specs).where(eq(specs.domainId, domainId));
-
-  const reqs = await db
-    .select()
-    .from(requirements)
-    .where(eq(requirements.specId, spec?.id ?? ""))
-    .orderBy(requirements.orderIndex);
-
+  const domainSpecs = await db.select().from(specs).where(eq(specs.domainId, domainId));
+  const reqs = await db.select().from(requirements).where(
+    eq(requirements.specId, domainSpecs[0]?.id ?? "00000000-0000-0000-0000-000000000000")
+  );
   const allScenarios = await db
     .select()
     .from(scenarios)
-    .orderBy(scenarios.orderIndex);
-
-  const scenarioMap = new Map<string, typeof allScenarios>();
-  for (const s of allScenarios) {
-    if (!scenarioMap.has(s.requirementId)) scenarioMap.set(s.requirementId, []);
-    scenarioMap.get(s.requirementId)!.push(s);
-  }
-
-  // Find active changes that have delta specs for this domain
-  const activeDeltaChanges = await db
-    .select({
-      changeId: changes.id,
-      changeName: changes.name,
-      deltaType: deltaSpecs.deltaType,
-      deltaContent: deltaSpecs.content,
-    })
-    .from(deltaSpecs)
-    .innerJoin(changes, eq(changes.id, deltaSpecs.changeId))
     .where(
-      eq(deltaSpecs.domainId, domainId) && eq(changes.status, "in-progress")
+      reqs.length > 0
+        ? eq(scenarios.requirementId, reqs[0]?.id ?? "00000000-0000-0000-0000-000000000000")
+        : eq(scenarios.id, "00000000-0000-0000-0000-000000000000")
     );
 
-  const strengthColors: Record<string, string> = {
-    SHALL: "bg-blue-100 text-blue-700",
-    MUST: "bg-red-100 text-red-700",
-    SHOULD: "bg-amber-100 text-amber-700",
-    MAY: "bg-slate-100 text-slate-500",
-  };
-
   return (
-    <div className="p-8">
-      {/* Breadcrumb */}
-      <div className="mb-6 flex items-center gap-2 text-sm text-slate-400">
-        <Link href={`/projects/${projectId}`} className="hover:text-slate-600">{project.name}</Link>
-        <span>→</span>
-        <Link href={`/projects/${projectId}/specs`} className="hover:text-slate-600">Specs</Link>
-        <span>→</span>
-        <span className="text-slate-700 font-medium">{domain.name}</span>
+    <div className="px-6 py-8 lg:px-10">
+      <Button variant="ghost" size="sm" asChild className="mb-4 gap-1 px-2 text-muted-foreground">
+        <Link href={`/projects/${id}/specs`}>
+          <ArrowLeft className="h-3.5 w-3.5" /> All domains
+        </Link>
+      </Button>
+
+      <div className="mb-6">
+        <Badge variant="secondary" className="mb-2 gap-1 rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+          <BookOpen className="h-3 w-3" /> {domain.name}
+        </Badge>
+        <h1 className="text-2xl font-semibold tracking-tight">{domain.purpose ?? domain.name}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{project.name}</p>
       </div>
 
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 capitalize">{domain.name} Specification</h1>
-        {domain.purpose && (
-          <p className="mt-2 text-slate-500">{domain.purpose}</p>
-        )}
-      </div>
-
-      {/* Active Delta Changes */}
-      {activeDeltaChanges.length > 0 && (
-        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="mb-3 font-semibold text-amber-800">⚡ Active Delta Specs</h2>
-          <div className="space-y-3">
-            {activeDeltaChanges.map((dc, i) => (
-              <div key={i} className="rounded-lg border border-amber-200 bg-white p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`rounded px-2 py-0.5 text-xs font-bold ${
-                    dc.deltaType === "ADDED" ? "bg-emerald-100 text-emerald-700" :
-                    dc.deltaType === "MODIFIED" ? "bg-amber-100 text-amber-700" :
-                    dc.deltaType === "REMOVED" ? "bg-red-100 text-red-700" :
-                    "bg-slate-100 text-slate-600"
-                  }`}>
-                    {dc.deltaType}
-                  </span>
-                  <span className="text-sm font-medium text-slate-700">{dc.changeName}</span>
-                </div>
-                <div className="md-content text-sm text-slate-600">
-                  <ReactMarkdown>{dc.deltaContent}</ReactMarkdown>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Spec Content */}
-      {spec && (
-        <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 font-semibold text-slate-700">Spec Content</h2>
-          <div className="md-content text-slate-700">
-            <ReactMarkdown>{spec.content}</ReactMarkdown>
-          </div>
-        </div>
-      )}
-
-      {/* Requirements */}
-      <div>
-        <h2 className="mb-4 text-lg font-semibold">
-          Requirements ({reqs.length})
-        </h2>
-        {reqs.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-400">
-            No requirements defined yet.
-          </p>
-        ) : (
-          <div className="space-y-6">
-            {reqs.map((req, idx) => {
-              const reqScenarios = scenarioMap.get(req.id) ?? [];
-              return (
-                <div key={req.id} className="rounded-xl border border-slate-200 bg-white p-6">
-                  <div className="mb-3 flex items-start gap-3">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-semibold text-slate-900">{req.title}</h3>
-                        <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${strengthColors[req.strength ?? ""] || "bg-slate-100"}`}>
-                          {req.strength}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-slate-600">{req.body}</p>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-3 lg:col-span-2">
+          <Card className="border-border/60 shadow-none">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <ListTree className="h-4 w-4 text-blue-500" /> Requirements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {reqs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No requirements yet.</p>
+              ) : (
+                reqs.map((r, i) => (
+                  <div key={r.id} className="rounded-md border border-border/60 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-muted-foreground">RQ-{i + 1}</span>
+                      <span className="font-medium text-sm">{r.title}</span>
+                      <Badge variant={strengthColor[r.strength ?? "SHALL"] ?? "slate"} className="rounded-sm text-[10px]">
+                        {r.strength}
+                      </Badge>
                     </div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.body}</p>
                   </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-                  {reqScenarios.length > 0 && (
-                    <div className="mt-4 ml-10 space-y-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        Scenarios
-                      </h4>
-                      {reqScenarios.map((sc) => (
-                        <div key={sc.id} className="rounded-lg bg-slate-50 p-3 text-sm">
-                          <p className="font-medium text-slate-700">{sc.title}</p>
-                          <div className="mt-2 space-y-1 text-slate-500">
-                            <p><span className="font-medium text-slate-600">GIVEN</span> {sc.given}</p>
-                            <p><span className="font-medium text-slate-600">WHEN</span> {sc.when}</p>
-                            <p><span className="font-medium text-slate-600">THEN</span> {sc.then}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+        <Card className="h-fit border-border/60 shadow-none">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <ListChecks className="h-4 w-4 text-emerald-500" /> Scenarios
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {allScenarios.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No scenarios defined.</p>
+            ) : (
+              allScenarios.map((s) => (
+                <div key={s.id} className="rounded-md border border-border/60 p-2.5">
+                  <p className="text-xs font-medium">{s.title}</p>
+                  <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                    <p><span className="font-medium text-foreground/80">GIVEN</span> {s.given}</p>
+                    <p><span className="font-medium text-foreground/80">WHEN</span> {s.when}</p>
+                    <p><span className="font-medium text-foreground/80">THEN</span> {s.then}</p>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

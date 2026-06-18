@@ -1,228 +1,194 @@
 import { db } from "@/db";
-import {
-  changes,
-  artifacts,
-  tasks,
-  projects,
-  specDomains,
-  deltaSpecs,
-} from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
+import Link from "next/link";
+import { eq, count, sql } from "drizzle-orm";
+import { projects, changes, artifacts, tasks } from "@/db/schema";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  GitBranchPlus,
+  ArrowLeft,
+  Lightbulb,
+  BookOpen,
+  Code2,
+  ListChecks,
+  CheckCircle2,
+  Circle,
+  Clock,
+  User,
+} from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const statusMeta: Record<string, { label: string; variant: "slate" | "info" | "warning" | "success" }> = {
+  proposed: { label: "Proposed", variant: "info" },
+  "in-progress": { label: "In Progress", variant: "warning" },
+  completed: { label: "Completed", variant: "success" },
+  archived: { label: "Archived", variant: "slate" },
+};
+
+const artifactConfig = {
+  proposal: { label: "Proposal", icon: Lightbulb, color: "text-amber-500" },
+  specs: { label: "Spec Deltas", icon: BookOpen, color: "text-blue-500" },
+  design: { label: "Design", icon: Code2, color: "text-violet-500" },
+  tasks: { label: "Tasks", icon: ListChecks, color: "text-emerald-500" },
+} as const;
 
 export default async function ChangeDetailPage({
   params,
 }: {
   params: Promise<{ id: string; changeId: string }>;
 }) {
-  const { id: projectId, changeId } = await params;
+  const { id, changeId } = await params;
+  const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  if (!project) return notFound();
 
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
-  if (!project) notFound();
+  const [change] = await db.select().from(changes).where(eq(changes.id, changeId)).limit(1);
+  if (!change) return notFound();
 
-  const [change] = await db.select().from(changes).where(eq(changes.id, changeId));
-  if (!change) notFound();
-
-  const allArtifacts = await db
-    .select()
-    .from(artifacts)
-    .where(eq(artifacts.changeId, changeId))
-    .orderBy(artifacts.createdAt);
-
-  const artifactMap = new Map(allArtifacts.map((a) => [a.type, a]));
-
-  const changeTasks = await db
-    .select()
+  const arts = await db.select().from(artifacts).where(eq(artifacts.changeId, changeId));
+  const allTasks = await db.select().from(tasks).where(eq(tasks.changeId, changeId));
+  const [{ count: doneCount }] = await db
+    .select({ count: count() })
     .from(tasks)
-    .where(eq(tasks.changeId, changeId))
-    .orderBy(tasks.orderIndex);
+    .where(sql`${tasks.changeId} = ${changeId} AND ${tasks.status} = 'done'`);
 
-  const doneTasks = changeTasks.filter((t) => t.checked);
-  const progress = changeTasks.length ? Math.round((doneTasks.length / changeTasks.length) * 100) : 0;
+  const groupedTasks = allTasks.reduce<Record<string, typeof allTasks>>((acc, t) => {
+    const key = t.groupTitle ?? "General";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
 
-  const deltaSpecDetails = await db
-    .select({
-      deltaType: deltaSpecs.deltaType,
-      content: deltaSpecs.content,
-      domainName: specDomains.name,
-    })
-    .from(deltaSpecs)
-    .innerJoin(specDomains, eq(specDomains.id, deltaSpecs.domainId))
-    .where(eq(deltaSpecs.changeId, changeId));
-
-  const artifactOrder = ["proposal", "specs", "design", "tasks"];
-  const artifactLabels: Record<string, { label: string; icon: string }> = {
-    proposal: { label: "Proposal", icon: "📝" },
-    specs: { label: "Delta Specs", icon: "📋" },
-    design: { label: "Design", icon: "🏗️" },
-    tasks: { label: "Tasks", icon: "☑️" },
-  };
-
-  const statusColors: Record<string, string> = {
-    proposed: "bg-blue-100 text-blue-700",
-    "in-progress": "bg-amber-100 text-amber-700",
-    completed: "bg-emerald-100 text-emerald-700",
-    archived: "bg-slate-100 text-slate-500",
-  };
+  const meta = statusMeta[change.status] ?? statusMeta.proposed;
+  const totalTasks = allTasks.length;
+  const progress = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
 
   return (
-    <div className="p-8">
-      {/* Breadcrumb */}
-      <div className="mb-6 flex items-center gap-2 text-sm text-slate-400">
-        <Link href={`/projects/${projectId}`} className="hover:text-slate-600">{project.name}</Link>
-        <span>→</span>
-        <Link href={`/projects/${projectId}/changes`} className="hover:text-slate-600">Changes</Link>
-        <span>→</span>
-        <span className="text-slate-700 font-medium">{change.name}</span>
-      </div>
+    <div className="px-6 py-8 lg:px-10">
+      <Button variant="ghost" size="sm" asChild className="mb-4 gap-1 px-2 text-muted-foreground">
+        <Link href={`/projects/${id}/changes`}>
+          <ArrowLeft className="h-3.5 w-3.5" /> All changes
+        </Link>
+      </Button>
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-slate-900">{change.name}</h1>
-          <span className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${statusColors[change.status]}`}>
-            {change.status}
-          </span>
-        </div>
-        {change.description && (
-          <p className="mt-2 text-slate-500">{change.description}</p>
-        )}
-        <div className="mt-3 flex gap-4 text-sm text-slate-400">
-          <span>Schema: {change.schema}</span>
-          <span>Created: {new Date(change.createdAt).toLocaleDateString()}</span>
-        </div>
-      </div>
-
-      {/* Artifact Dependency Graph */}
-      <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-4 font-semibold">Artifact Progress</h2>
-        <div className="flex items-center gap-2">
-          {artifactOrder.map((type, i) => {
-            const art = artifactMap.get(type);
-            const label = artifactLabels[type];
-            const isDone = art?.status === "done";
-            const isReady = art?.status === "ready";
-            const isDraft = art?.status === "draft";
-            const isBlocked = art?.status === "blocked";
-
-            return (
-              <div key={type} className="flex items-center">
-                <div
-                  className={`flex items-center gap-2 rounded-lg border px-4 py-2 ${
-                    isDone
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : isReady
-                      ? "border-blue-300 bg-blue-50 text-blue-700"
-                      : isDraft
-                      ? "border-slate-300 bg-white text-slate-400"
-                      : isBlocked
-                      ? "border-slate-200 bg-slate-50 text-slate-400"
-                      : "border-slate-200 bg-slate-50 text-slate-300"
-                  }`}
-                >
-                  <span>{isDone ? "✓" : label.icon}</span>
-                  <span className="text-sm font-medium">{label.label}</span>
-                </div>
-                {i < artifactOrder.length - 1 && (
-                  <div className={`mx-1 h-0.5 w-6 ${isDone ? "bg-emerald-300" : "bg-slate-200"}`} />
-                )}
+      <Card className="relative mb-6 overflow-hidden border-border/60 bg-gradient-to-br from-violet-500/5 via-transparent to-indigo-500/5 shadow-none">
+        <CardHeader className="pb-4 pt-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <GitBranchPlus className="h-4 w-4 text-violet-500" />
+                <span className="font-mono text-sm font-medium">{change.name}</span>
+                <Badge variant={meta.variant} className="rounded-sm px-2 py-0.5 text-[10px]">{meta.label}</Badge>
               </div>
-            );
-          })}
-        </div>
-        <div className="mt-4">
-          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-blue-500" style={{ width: `${progress}%` }} />
+              {change.description && (
+                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{change.description}</p>
+              )}
+              <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span>{project.name}</span>
+                <span>·</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-2.5 w-2.5" /> Created {formatDate(change.createdAt)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">Verify</Button>
+              <Button size="sm">Run Apply</Button>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
-            {doneTasks.length}/{changeTasks.length} tasks complete ({progress}%)
-          </p>
-        </div>
-      </div>
-
-      {/* Delta Specs */}
-      {deltaSpecDetails.length > 0 && (
-        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="mb-3 font-semibold text-amber-800">Delta Specs</h2>
-          {deltaSpecDetails.map((ds, i) => (
-            <div key={i} className="mb-3 rounded-lg bg-white p-3 last:mb-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`rounded px-2 py-0.5 text-xs font-bold ${
-                  ds.deltaType === "ADDED" ? "bg-emerald-100 text-emerald-700" :
-                  ds.deltaType === "MODIFIED" ? "bg-amber-100 text-amber-700" :
-                  ds.deltaType === "REMOVED" ? "bg-red-100 text-red-700" :
-                  "bg-slate-100 text-slate-600"
-                }`}>
-                  {ds.deltaType}
-                </span>
-                <span className="text-sm text-slate-600">in <code className="rounded bg-slate-100 px-1">{ds.domainName}/spec.md</code></span>
-              </div>
-              <div className="md-content text-sm text-slate-600">
-                <ReactMarkdown>{ds.content}</ReactMarkdown>
-              </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex items-center gap-4 border-t border-border/60 pt-4 text-xs">
+            <div>
+              <span className="text-muted-foreground">Progress</span>
+              <span className="ml-2 font-semibold tabular-nums">{progress}%</span>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="tabular-nums text-muted-foreground">{doneCount}/{totalTasks} tasks</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Artifacts Content */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {artifactOrder.map((type) => {
-          const art = artifactMap.get(type);
-          if (!art) return null;
-          const label = artifactLabels[type];
+      {/* Artifact tabs (we stack them vertically) */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {(Object.keys(artifactConfig) as Array<keyof typeof artifactConfig>).map((type) => {
+          const config = artifactConfig[type];
+          const Icon = config.icon;
+          const artifact = arts.find((a) => a.type === type);
+
           return (
-            <div key={type} className="rounded-xl border border-slate-200 bg-white">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-                <div className="flex items-center gap-2">
-                  <span>{label.icon}</span>
-                  <h3 className="font-medium text-slate-700">{label.label}</h3>
-                </div>
-                <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-                  art.status === "done" ? "bg-emerald-100 text-emerald-700" :
-                  art.status === "ready" ? "bg-blue-100 text-blue-600" :
-                  art.status === "draft" ? "bg-slate-100 text-slate-500" :
-                  "bg-slate-100 text-slate-400"
-                }`}>
-                  {art.status}
-                </span>
-              </div>
-              <div className="max-h-96 overflow-auto p-5">
-                <div className="md-content text-sm text-slate-700">
-                  <ReactMarkdown>{art.content}</ReactMarkdown>
-                </div>
-              </div>
-            </div>
+            <Card key={type} className="border-border/60 shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between pb-3 pt-4">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Icon className={`h-4 w-4 ${config.color}`} />
+                  {config.label}
+                </CardTitle>
+                {artifact ? (
+                  <Badge variant={artifact.status === "approved" || artifact.status === "done" ? "success" : "warning"} className="rounded-sm text-[10px]">
+                    {artifact.status}
+                  </Badge>
+                ) : (
+                  <Badge variant="slate" className="rounded-sm text-[10px]">missing</Badge>
+                )}
+              </CardHeader>
+              <CardContent>
+                {artifact ? (
+                  type === "tasks" ? (
+                    <div className="space-y-4">
+                      {Object.entries(groupedTasks).map(([group, grpTasks]) => (
+                        <div key={group}>
+                          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            {group}
+                          </h4>
+                          <ul className="space-y-1.5">
+                            {grpTasks.map((t) => (
+                              <li key={t.id} className="flex items-start gap-2 text-xs">
+                                {t.status === "done" ? (
+                                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                                ) : (
+                                  <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+                                )}
+                                <div className="min-w-0">
+                                  <span className="font-mono text-[10px] text-muted-foreground">{t.taskNumber}</span>{" "}
+                                  <span className={t.status === "done" ? "text-muted-foreground line-through" : ""}>
+                                    {t.title}
+                                  </span>
+                                  {t.assignee && (
+                                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                      <User className="h-2.5 w-2.5" /> {t.assignee.split(" ")[0]}
+                                    </span>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-[11px] leading-relaxed text-foreground/90">
+                        {artifact.content}
+                      </pre>
+                    </div>
+                  )
+                ) : (
+                  <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-3 py-6 text-center text-xs text-muted-foreground">
+                    No {config.label.toLowerCase()} artifact yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
       </div>
-
-      {/* Task List */}
-      {changeTasks.length > 0 && (
-        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 font-semibold">Implementation Tasks</h2>
-          <div className="space-y-1">
-            {changeTasks.map((task) => (
-              <div key={task.id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-50">
-                <span className={`h-4 w-4 shrink-0 rounded border ${task.checked ? "border-emerald-400 bg-emerald-400" : "border-slate-300"}`}>
-                  {task.checked && <span className="text-white text-xs">✓</span>}
-                </span>
-                <span className="font-mono text-xs text-slate-400 w-10">{task.taskNumber}</span>
-                <span className={`text-sm ${task.checked ? "text-slate-400 line-through" : "text-slate-700"}`}>
-                  {task.title}
-                </span>
-                {task.assignee && (
-                  <span className="ml-auto rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">{task.assignee}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
