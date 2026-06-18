@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+}
+
+/* Kanban styles */
+.kanban-column {
+  @apply min-h-[200px] rounded-xl border border-slate-200 bg-slate-50/50 p-3 transition-colors;
+}
+.kanban-column.drag-over {
+  @apply border-blue-400 bg-blue-50;
+}
+.kanban-card {
+  @apply cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md active:cursor-grabbing;
+}
+.kanban-card.dragging {
+  @apply rotate-1 opacity-60 shadow-lg;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Markdown content styles */
+.md-content h1 {
+  @apply mb-4 text-2xl font-bold;
+}
+.md-content h2 {
+  @apply mb-3 mt-6 text-xl font-semibold;
+}
+.md-content h3 {
+  @apply mb-2 mt-4 text-lg font-medium;
+}
+.md-content p {
+  @apply mb-3 text-slate-700;
+}
+.md-content ul, .md-content ol {
+  @apply mb-3 ml-6 list-disc;
+}
+.md-content li {
+  @apply mb-1 text-slate-700;
+}
+.md-content code {
+  @apply rounded bg-slate-100 px-1.5 py-0.5 text-sm font-mono text-slate-800;
+}
+.md-content pre {
+  @apply mb-4 rounded-lg bg-slate-900 p-4;
+}
+.md-content pre code {
+  @apply bg-transparent p-0 text-slate-100;
+}
+.md-content blockquote {
+  @apply mb-3 border-l-4 border-slate-300 pl-4 italic text-slate-500;
+}
+.md-content input[type="checkbox"] {
+  @apply mr-2;
+}
