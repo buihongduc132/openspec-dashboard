@@ -92,7 +92,8 @@ verb (ADDED / MODIFIED / REMOVED / RENAMED) and per-requirement.
 
 **AC:**
 - (a) Computed by parsing every `changes/*/specs/<domain>.md` and joining on domain +
-  requirement name.
+  requirement **UUID** (D-ReqID). Result is cached per `(project, changeSetVersion)` and
+  invalidated on any change edit; cache hit serves NFR-2 p99 < 500ms on large projects.
 - (b) Conflicts (see req 06 §6.4 for the full matrix) flagged with severity.
 - (c) Deep-link from impact row → the delta section in the change view.
 

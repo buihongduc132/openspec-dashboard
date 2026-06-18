@@ -22,9 +22,10 @@ assignees, labels, due dates, dependencies, comments, sub-checklists. The canoni
   reconciliation algorithm in §4.21) are surfaced as warnings and cleaned on explicit
   action. Reconciliation never silently drops an entry.
 - (d) Out-of-band `$EDITOR` renumbering does NOT break ID binding: the server re-binds
-  UUIDs to Markdown lines using (parent chain + prose hash + original order) heuristics,
-  and flags low-confidence rebindings for manual confirmation rather than silently
-  reattaching.
+  UUIDs to Markdown lines using the §4.21 reconciliation algorithm (parent-chain +
+  prose-string + sidecar-order tie-break), and flags low-confidence bindings for manual
+  confirmation rather than silently reattaching. **`prose-hash` is NOT used as a binding
+  key** (it would collide distinct tasks with identical prose); only the prose-string is.
 
 ## 4.2 Task parsing (Markdown → structured)
 
@@ -35,11 +36,15 @@ non-canonical; writes normalize to `-`.
 
 **AC:**
 - (a) Parser handles arbitrary nesting depth up to `MAX_TASK_DEPTH` (dashboard constant);
-  deeper nesting is preserved verbatim but not promoted to structured tasks.
+  deeper nesting is preserved verbatim in the Markdown (INV-2) AND promoted to a
+  **"raw Markdown" board lane** (visible, searchable per INV-8) rather than silently
+  dropped from the board. Tasks beyond MAX_TASK_DEPTH get a UUID but no structured
+  card fields.
 - (b) Tasks outside a numbered scheme (plain `- [ ]`) get a UUID and a low-confidence
   display-number warning.
-- (c) Re-parse is idempotent: parse→serialize yields equivalent Markdown (INV-2
-  region-scoped).
+- (c) Re-parse is idempotent: parse→serialize yields byte-identical Markdown **outside the
+  explicitly edited region** (INV-2). Markers (`-`, `*`, `1.`) are preserved as-written;
+  non-canonical markers are surfaced as validation warnings, NEVER rewritten.
 
 ## 4.3 Task serialization (structured → Markdown)
 
@@ -83,7 +88,8 @@ updates the sidecar `status` + `order` and (for Done) the Markdown checkbox.
 **AC:**
 - (a) Optimistic UI update with rollback on server rejection (INV-7 per-section conflict).
 - (b) Multi-select drag (move several cards at once).
-- (c) Touch + keyboard accessible (WCAG 2.1 AA — NFR-9, tested per-component from Phase 1).
+- (c) Touch + keyboard accessible (**WCAG 2.1 AA + 2.2 AA** incl. 2.5.7 Dragging Movements —
+  NFR-9, tested per-component + manual AT for DnD from Phase 1).
 
 ## 4.7 Swimlanes
 
@@ -135,6 +141,10 @@ CRUD op updates both the Markdown (INV-2) and the sidecar.
 - (b) Deleting a task removes the line; the sidecar entry is tombstoned in the audit log
   (cross-session restorable, INV-4).
 - (c) Editing title/body rewrites only that line's text region.
+- (d) **Bulk-ops scope**: bulk operations are scoped to a **single change folder** for
+  atomicity (all-or-nothing within one change). Bulk-ops spanning multiple changes are
+  executed as N independent per-change transactions; partial failure leaves completed
+  changes committed and failed changes rolled back, with a clear per-change result report.
 
 ## 4.12 Task dependencies
 
@@ -222,20 +232,42 @@ Velocity = tasks completed per unit time.
 - (b) Velocity chart fed by the audit log (completion events), available once the audit log
   is in place (Phase 0 — see plan).
 
-## 4.21 Reconciliation algorithm (Markdown ↔ sidecar)
+## 4.21 Reconciliation algorithm (Markdown ↔ sidecar — deterministic)
 
-**Shall:** On every read, reconcile the Markdown task set with the sidecar:
+**Shall:** On every read, reconcile the Markdown task set with the sidecar. This is a
+**single, deterministic algorithm** (the only spec of binding — supersedes any prose in
+§4.1):
 
-1. Parse Markdown into ordered (parent-chain, prose) tuples.
-2. For each Markdown tuple, find the sidecar UUID by: exact (parent-chain, prose) match →
-   if unique, bind. If ambiguous, use original-order proximity; mark confidence.
-3. Markdown tuples with no sidecar UUID → assign a new UUID (first-seen).
-4. Sidecar UUIDs with no Markdown tuple → orphan; flag warning (do NOT auto-delete).
-5. Low-confidence bindings → surface for manual confirmation.
+1. Parse Markdown into ordered `(parent-chain, prose)` tuples.
+2. Maintain a **consumed-sidecar-UUID set** (initially empty). For each Markdown tuple in
+   order, compute binding key `K = (parent-chain, prose-string)`.
+   - Find sidecar entries with matching `K` **that are NOT in the consumed set**.
+   - If exactly one remaining match → bind that UUID. Add UUID to consumed set. Confidence = 1.0.
+   - If zero remaining matches → **assign a new UUID** (first-seen), add to consumed set.
+     Confidence = 1.0.
+   - If ≥2 remaining matches (ambiguous) → **total-order tie-break**: lexicographically
+     smallest UUID among the matches. Add winner to consumed set.
+     Confidence = `1.0 / (1 + matchCount)` (lower = more ambiguous).
+3. Sidecar UUIDs not in the consumed set (no Markdown tuple bound to them) → **orphans**;
+   flagged warning, NEVER auto-deleted, NEVER silently reattached.
+4. Confidence threshold: bindings with `confidence < 0.5` are **advisory-only** — surfaced
+   as "low-confidence binding, confirm?" in the UI; the binding still takes effect so the
+   board renders, but the user is prompted to confirm. Advisory state is stored, not
+   re-prompted every read (no churn).
+5. Idempotency: re-running reconciliation on the same (Markdown, sidecar) pair yields the
+   same UUID↔tuple bindings. No UUID is reassigned on a low-confidence re-read without an
+   explicit user confirmation action.
+6. **Invariant guarantee**: two Markdown lines with identical `(parent-chain, prose)` will
+   NEVER both bind to the same sidecar UUID (the consumed-set prevents it). The second
+   line gets a fresh UUID, satisfying §4.1(b) AC.
 
 **AC:**
 - (a) Reconciliation is deterministic for a given (Markdown, sidecar) pair.
 - (b) No silent UUID reassignment; every binding change is audit-logged.
+- (c) Orphan sidecar entries are never auto-deleted.
+- (d) `prose-string` (not `prose-hash`) is the binding key — this is the single algorithm;
+    §4.1(d) prose-hash references are withdrawn.
+- (e) Duplicate-prose Markdown lines each get distinct UUIDs via the consumed-set.
 
 ## 4.22 Markdown import/export
 

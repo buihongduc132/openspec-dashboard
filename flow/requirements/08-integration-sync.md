@@ -48,9 +48,12 @@ per change (configurable), auto-PR on archive (configurable target branch).
 **AC:**
 - (a) Commit messages structured (`chore(openspec): <verb> <entity>`), machine-parseable.
 - (b) Branch-per-change creates `<prefix>/<change-name>`; **push is always explicit and
-  user-initiated** — auto-PR implies committing to the change's local branch and opening a
-  PR via the configured forge API, but the push to remote requires an explicit user action
-  OR an opt-in `autoPush: true` setting (default off).
+  user-initiated**. "Auto-PR on archive" REQUIRES `autoPush: true` (default off) — there is
+  no "auto-PR without push" mode, because forges (GitHub/GitLab/forgejo) cannot open a PR
+  for a branch that was never pushed. With `autoPush: false` (default), archive commits to
+  the change's local branch only; the user pushes manually when ready. With `autoPush:
+  true`, archive commits + pushes + opens a PR via the configured forge API in one
+  transaction.
 - (c) Conflict on `git pull` surfaces a merge UI rather than failing silently.
 - (d) PR state is **dashboard-only**; it is NOT in CLI-parity scope (the CLI cannot consume
   PR state and that is by design).
@@ -62,9 +65,12 @@ archived, validation failed). Inbound webhooks for Git events triggering auto-va
 
 **AC:**
 - (a) Outbound: HMAC-signed payload, retry with exponential backoff, dead-letter queue,
-  **SSRF egress filter** (block RFC1918, link-local 169.254/16, cloud metadata endpoints
-  `169.254.169.254` / `fd00:ec2::254`, loopback) — configurable allowlist for internal
-  targets.
+  **SSRF egress filter default-deny**: the default egress allowlist is **empty** (all
+  outbound blocked); the operator explicitly adds permitted egress targets. A denylist
+  (block RFC1918, link-local 169.254/16, CGNAT 100.64/10, cloud metadata
+  `169.254.169.254` / `fd00:ec2::254`, loopback) is enforced on top of the allowlist to
+  catch misconfiguration. Denylist-only is insecure (DNS rebinding, IPv6-mapped-IPv4,
+  decimal/octal/hex IP literals, redirect chains) and is NOT the default.
 - (b) Inbound: HMAC verification with **documented rotation policy** (support N active
   secrets, versioned signatures), idempotent event handling (event-id dedup).
 - (c) Webhook config per-project, admin-gated.
@@ -109,8 +115,14 @@ registration.
 **Shall:** Phase 0 MUST empirically confirm:
 
 1. **Sidecar coexistence**: that `openspec validate` ignores `openspec/.dashboard/` (a
-   dot-prefixed dir) and any sidecar files. If it does NOT, the sidecar MUST relocate
-   outside `openspec/` and D-SidecarLoc is amended.
+   dot-prefixed dir) and any sidecar files. **Binary success criteria**: "ignore" means
+   "the file is not traversed and produces zero validation findings" — partial-ignore
+   (traversed-but-skipped) is a FAILURE. **Pre-committed fallback location** if it fails:
+   `<repo>/.openspec-dashboard/` (outside `openspec/` entirely). The full list of
+   affected path strings under each branch: INV-1 location claim, req 1.2(b)/1.5/4.1/4.15/
+   4.16/5.4/8.3/8.6/8.8/9.8/9.9 all switch from `openspec/.dashboard/` to
+   `<repo>/.openspec-dashboard/` atomically via a single config constant. No design
+   amendment needed beyond the constant.
 2. **Workspace / context-store formats**: obtain the actual upstream file format (clone the
    repo, read source) before claiming CLI parity. Until then, these remain server-side
    projections (req 01 §1.7/§1.8).

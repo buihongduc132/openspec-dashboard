@@ -46,7 +46,7 @@ forked-from name + version + fork timestamp. NOT an invented upstream `forked_fr
 - (a) Fork provenance enables "diff against upstream" using the recorded source.
 - (b) "Diff against upstream" action shows what the fork changed (file-level diff).
 
-## 5.5 Schema editor (visual + YAML — owned: Phase 3 per D5)
+## 5.5 Schema editor (visual + YAML — owned: Phase 3 per D-SchemaEditor)
 
 **Shall:** Two-pane editor: visual form (artifact list with dependency picker, template
 selector, apply flags) + raw `schema.yaml` with live validation and two-way sync.

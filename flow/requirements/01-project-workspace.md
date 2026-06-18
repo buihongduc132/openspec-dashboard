@@ -1,6 +1,6 @@
 # Requirements 01 — Project, Workspace, Context Store
 
-> Strong voice. Cross-cutting invariants INV-1..INV-11 apply (see `README.md`).
+> Strong voice. Cross-cutting invariants INV-1..INV-8 (+INV-4a) apply (see `README.md`); **there is no INV-9/10/11**.
 
 ## 1.1 Project registration (hardened)
 
@@ -13,9 +13,12 @@ initialize the `openspec/` tree.
   allowlist of roots (default: the server's working dir + explicitly approved dirs).
   Out-of-allowlist paths are rejected with a structured error; approval is an admin action
   recorded in the audit log.
-- (b) Remote-URL registration clones with: `--config core.hooksPath=/dev/null`,
-  `--no-tags`, protocol restricted to `https` (opt-in `git`/`ssh`), and into a per-project
-  jail dir. Records the origin URL; exposes "pull to refresh".
+- (b) Remote-URL registration clones into a per-project jail dir with the full sandbox
+  flag set: `--config core.hooksPath=/dev/null` (block commit hooks), `--config
+  filter.*.clean= --config filter.*.smudge=` (block `.gitattributes` smudge/clean RCE),
+  `--no-remote-submodules --reject-shallow`, `--no-tags`, protocol restricted to `https`
+  (opt-in `git`/`ssh`), and submodules forbidden by policy. Records the origin URL;
+  exposes "pull to refresh".
 - (c) Duplicate registration (same absolute path or same origin URL) is rejected with the
   existing project ID.
 - (d) Registration persists: project id, display name, repo path/URL, detected schema
@@ -45,8 +48,11 @@ editor with live validation. Editable: default schema, context block, per-artifa
 overrides.
 
 **AC:**
-- (a) Form fields map 1:1 to documented `config.yaml` keys; unknown keys preserved verbatim
-  (INV-2 region-scoped: only touched keys change).
+- (a) Form fields map 1:1 to documented `config.yaml` keys; unknown keys preserved verbatim.
+  **YAML round-trip property** (NOT INV-2, which is Markdown-only): the edited write
+  preserves key ordering, comments, anchors/aliases outside the edited region, verified by
+  a property test using a YAML AST editor (e.g. `yaml` package's CST mode), not a string
+  rewrite.
 - (b) Invalid YAML rejected at the editor with line/column errors; never reaches disk.
 - (c) Saving writes only `config.yaml`; no collateral file churn.
 

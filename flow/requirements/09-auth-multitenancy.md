@@ -61,7 +61,13 @@ timestamp tracked.
   (origin-IP, user-agent) fingerprint buckets. If a token is used from a fingerprint bucket
   not seen in the prior 30 days AND geographically implausible given the prior median
   (>2000km from median of last 50 uses), an alert is sent to the owner and the token is
-  temporarily rate-limited pending reconfirmation. Thresholds configurable.
+  temporarily rate-limited pending reconfirmation. **Cold-start**: for tokens with <50
+  uses, the median is computed over all available uses (minimum 5); tokens with <5 uses are
+  exempt from geographic implausibility (only novel-fingerprint alerting applies). Geo-IP
+  source: **operator-provided** — the operator configures a geo-IP database URL or local
+  file path via `GEOIP_SOURCE` env var (e.g. a licensed MaxMind GeoLite2 download, or an
+  open alternative like DB-IP / IP2Location LITE); the server does NOT bundle any geo-IP
+  database in the public repo.
 
 ## 9.6 Audit log (Phase 0 — immutable, hash-chained, with a verifier)
 
@@ -70,13 +76,29 @@ actor, action, entity, before/after content hash, timestamp, request IP, user-ag
 
 **AC:**
 - (a) Audit log stored separately from project data; **tamper-evident via a hash chain**
-  (each entry's `prevHash = SHA256(prevEntryHash || entryBody)`).
+  (each entry's `prevHash = SHA256(prevEntryHash || entryBody)`). **Single-writer append**:
+  a per-project serial append queue ensures no two concurrent appends read the same
+  `prevHash`; concurrent mutating endpoints enqueue their audit record and the writer
+  drains serially. **`entryBody` schema is defined**: `{actor, action, entity,
+  beforeHash, afterHash, timestamp (UTC, ms), requestId (UUID)}` — the timestamp +
+  requestId make same-body different-time entries distinct in the hash.
 - (b) A **chain verifier** runs on every read of the audit log AND as a scheduled job; any
-  broken link is a CRITICAL alert. The verifier is unit-tested against tampered fixtures.
-- (c) Retention configurable (default 1 year); exportable for compliance.
+  broken link is a CRITICAL alert with a defined incident response: the server enters
+  **read-only quarantine** (mutating endpoints return 503), the broken entry is isolated,
+  and an operator is paged. The verifier is unit-tested against tampered fixtures.
+- (c) Retention configurable (default 1 year); **retention = archive-then-delete**
+  (D-AuditRetention): when the retention window expires, entries are moved to a cold
+  archive (chain hash preserved for compliance), then deleted from the live log. The cold
+  archive's chain is independently verifiable. Exportable for compliance.
 - (d) Searchable by actor, entity, action, time range.
 - (e) **Emitted from Phase 0**: every mutating endpoint has an audit-emission contract test
   (NFR-10) gating Phase 1.
+- (f) **Multi-tenant purge reconciliation**: the audit log is append-only at the chain
+  level within a retention window; per-project right-to-erasure (req 01 §1.5, req 09 §9.9)
+  is satisfied by **per-project partitioning + archive-and-delete** (D-AuditRetention) —
+  each project has its own audit-log file (chain). Erasure archives that project's chain
+  to offline storage (chain hash preserved for compliance) then deletes it from the live
+  log. Retention expiry does the same. Other projects' chains are untouched.
 
 ## 9.7 Rate limiting & abuse protection
 
@@ -114,9 +136,19 @@ touched** by erasure.
 ## 9.10 Agent & webhook trust boundary
 
 **Shall:** Maintain an explicit trust-boundary matrix for agent tokens and inbound
-webhooks: per-token (project, path-allowlist, role, max-write-rate, allowed-verbs). Default
-deny; every grant explicit.
+webhooks. Defined fields:
+
+- **path allowlist**: glob patterns (e.g. `openspec/changes/*/tasks.md`,
+  `openspec/.dashboard/**`). Default deny; every grant explicit. **`openspec/.dashboard/
+  proposals/` is NOT in the default allowlist** — agents must be explicitly granted write
+  to propose delta specs.
+- **allowed-verbs**: HTTP verbs (`GET`, `POST`, `PATCH`, `DELETE`). Default deny.
+- **max-write-rate**: units = **writes per minute** per token; default 60/min, configurable.
+- **phase scoping**: enforcement middleware ships in **Phase 3b** (when agent API +
+  webhooks ship); AC (b) below does not apply before 3b.
 
 **AC:**
 - (a) Matrix documented in the threat model (req 08 §8.10) and enforced in middleware.
 - (b) Boundary violations are audit-logged as security events and rate-limited.
+
+**Non-goals (Phase 0–3a):** no agent/webhook surfaces exist, so no enforcement needed.

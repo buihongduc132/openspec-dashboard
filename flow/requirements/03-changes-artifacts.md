@@ -45,7 +45,8 @@ form + raw YAML editor with live validation. Renames move the folder atomically.
 - (a) Folder rename uses `git mv` inside a git repo; **outside a git repo**, a plain
   filesystem rename is used and the behavior is documented (no history to preserve).
 - (b) Rename updates references in: server-side workspace manifests, server-side initiative
-  links, other changes' dependencies — with preview + confirm.
+  links — with preview + confirm. (Inter-change dependencies are NOT a defined concept in
+  the delta grammar or schema `requires`; this AC previously referenced them in error.)
 
 ## 3.5 Artifact status tracking
 
@@ -142,11 +143,16 @@ git repo) with a machine-readable commit message.
 **AC:**
 - (a) Archive gated by: all `apply.requires` artifacts present + valid, no unresolved
   conflict with another active change on the same requirement (full matrix in req 06 §6.4).
-- (b) Restore reverts the spec merges using the recorded inverse-patch, **unless** a newer
-  archived change has since modified the same requirement — in which case restore enters the
-  INV-4a "unrestorable" state with the reason recorded. Restore is cross-session (tombstone
-  + inverse-patch in audit log).
+- (b) Restore reverts the spec merges using the recorded inverse-patch, **unless** a
+  later-archived change (per archive sequence number) has since modified the same
+  requirement UUID (D-ReqID) — in which case restore enters the INV-4a "unrestorable"
+  state with the reason recorded. Restore is cross-session (tombstone + inverse-patch in
+  audit log).
 - (c) Archive preserves the original delta files inside the archived folder (audit trail).
+- (d) **Per-project archive mutex**: archive (single + bulk) holds a project-scoped mutex
+  for the sequence (apply deltas → git add → git commit). On git failure, the delta
+  application is rolled back; spec-file and git state never diverge. Two concurrent
+  archives on the same project serialize; one waits, neither corrupts.
 
 ## 3.14 Bulk archive
 
@@ -158,7 +164,11 @@ Resolve by ordering or interactive disambiguation.
 - (a) Conflict detection runs across the whole selected set BEFORE any archive, including
   file-level edits to the same `specs/<domain>.md`.
 - (b) Archive order is topological w.r.t. inter-change dependencies (e.g., change A
-  ADVERTISES a requirement that change B MODIFIED → A archives first).
+  **ADDS** a requirement that change B MODIFIED → A archives first). Cycles in the
+  inter-change dependency graph (A adds R that B modifies, B adds S that A modifies) are
+  **rejected** with a clear error — the user must split a change. Topo tie-break is
+  **deterministic**: lexicographic on change name, so the final main-spec state is
+  reproducible regardless of selection order.
 
 ## 3.15 Change sync (no archive)
 

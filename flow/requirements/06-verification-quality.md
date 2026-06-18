@@ -45,10 +45,11 @@ files, trend over time (findings opened vs resolved).
   log ships (Phase 0).
 - (b) Drill-down from dashboard tile to the finding list scoped to that severity/file.
 
-## 6.4 Conflict detection (full matrix)
+## 6.4 Conflict detection (full matrix — split into 6.4a requirement-level + 6.4b file-level)
 
-**Shall:** Detect every pairwise conflict between active changes touching the same spec
-domain. The FULL matrix:
+**6.4a Requirement-level conflict detection (owned: Phase 1.1).** Detect every pairwise
+conflict between **active** changes touching the same spec domain at the requirement level.
+The FULL requirement-level matrix:
 
 | Change A verb | Change B verb | Conflict? | Resolution |
 |---------------|---------------|-----------|------------|
@@ -64,12 +65,24 @@ domain. The FULL matrix:
 | RENAMED `R`→`R'` | RENAMED `R`→`R''` | YES | Reconcile target names |
 | any           | references `R` (orphan) | YES | Resolve orphan reference |
 
-**Plus file-level conflicts:** concurrent edits to the same `specs/<domain>.md` across
-changes at archive time are detected by content-hash comparison of the pre-archive main
-spec vs each change's expected base.
+**Plus archived→active drift (M-6):** after a change archives, any active change whose
+delta touches a requirement the archive just modified/removed is **stale** — its expected
+base is wrong. The drift detector runs on every archive and surfaces stale active changes
+for rebase. (This is the canonical handling; req 03 §3.14(b) file-level conflicts are the
+6.4b superset.)
 
-**AC:**
-- (a) Conflict surface is real-time (recomputed on any change edit).
+**6.4b File-level conflict detection (owned: Phase 2.2).** At archive time, detect
+concurrent edits to the same `specs/<domain>.md` across the selected set by comparing the
+pre-archive main-spec content hash vs each change's expected base hash. Mismatches trigger
+the resolution UI.
+
+**AC (6.4a + 6.4b):**
+- (a) Conflict surface is real-time (recomputed on any change edit). Requirement-level
+  (6.4a) ships in Phase 1.1; file-level (6.4b) ships in Phase 2.2 — Phase 1 explicitly does
+  NOT claim file-level coverage. **The matrix rows in 6.4a are matched by requirement UUID
+  (D-ReqID) where the UUID exists; requirements that have not yet been assigned a UUID
+  (e.g., a brand-new ADDED requirement not yet in `req-ids.json`) are matched by name as a
+  fallback**, with the UUID assigned and recorded at first-seen.
 - (b) Conflict-resolution UI offers: archive order suggestion, side-by-side merge editor,
   or "split the requirement" (creates two distinct requirements).
 - (c) All conflicts must be resolved before any of the conflicting changes can archive.
@@ -79,7 +92,7 @@ spec vs each change's expected base.
 **Shall:** When a workspace links multiple repos, detect conflicts where two repos' active
 changes touch semantically equivalent requirements. **Matching key = (workspace-scoped
 project alias + normalized requirement signature)**, where the normalized signature is
-`(domain, lowercased-kebab-name, scenario-count, RFC-2119-strength-set)`. Exact-match only;
+`(domain, lowercased-kebab-name, scenario-heading-hashes, RFC-2119-strength-set)`. Exact-match only;
 near-matches are surfaced as "review candidates" with a confidence label, never
 auto-merged.
 

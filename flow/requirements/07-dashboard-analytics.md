@@ -12,10 +12,13 @@ count, task completion %, validation status, last activity, top contributors.
 - (a) Counts reconcile with the file system within the refresh window.
 - (b) Click-through from any tile to the scoped list view.
 
-## 7.2 Multi-project overview
+## 7.2 Multi-project overview (distinct from req 1.6)
 
-**Shall:** Cross-project dashboard: per-project cards with the same metrics, plus org-level
-rollups.
+**Shall:** Cross-project dashboard: per-project cards with the same metrics as req 1.6,
+**plus org-level rollups** (total active changes across all projects, total open
+validation errors, aggregate task completion %) and a cross-project activity heatmap.
+Req 1.6 is the single-project card view on the project list page; req 7.2 is the
+org-level rollup dashboard. They are distinct surfaces with shared metric computation.
 
 **AC:**
 - (a) Sort/filter by health, activity, owner.
@@ -45,7 +48,10 @@ changes touching, validation errors). Identifies over- and under-specified domai
 per day/week.
 
 **AC:**
-- (a) Sourced from audit-log completion events (Phase 0).
+- (a) Sourced from audit-log completion events (Phase 0); **velocity is unblocked at
+  Phase 0** because its data source (the audit log) ships in Phase 0. The chart UI is
+  rendered starting in Phase 1.5 (project overview) — there is no Phase-4 deferral for
+  velocity, correcting the plan matrix.
 - (b) Configurable window (last 7/30/90 days).
 
 ## 7.6 Archive analytics

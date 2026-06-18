@@ -40,6 +40,9 @@ service-account*.json
 # Dashboard-private metadata (contains user/project data)
 openspec/.dashboard/
 **/.dashboard/
+# §8.9 fallback location (pre-ignored so a gate-flip never leaks PII)
+.openspec-dashboard/
+**/.openspec-dashboard/
 
 # Database / runtime state
 *.db
