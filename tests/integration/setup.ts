@@ -1,56 +1,31 @@
 /**
- * Integration test setup — starts a Postgres testcontainer, runs Drizzle migrations,
- * exposes a getDb() helper, and tears down after the suite.
+ * Integration test setup helpers.
+ *
+ * The Postgres testcontainer is started by global-setup.ts (vitest globalSetup),
+ * which also sets process.env.DATABASE_URL before any test file imports.
+ * This file provides convenience helpers for accessing the test DB.
+ *
+ * Import this file in integration test files for the getDb() helper:
+ *   import "./setup";
+ *   import { GET } from "@/app/api/health/route";
  */
-import { afterAll, beforeAll } from "vitest";
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import path from "node:path";
-import * as schema from "@/db/schema";
+import { db } from "@/db";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type * as schema from "@/db/schema";
 
-let container: StartedPostgreSqlContainer | undefined;
-let pool: Pool | undefined;
-let dbInstance: NodePgDatabase<typeof schema> | undefined;
+export type SchemaDb = NodePgDatabase<typeof schema>;
 
-beforeAll(async () => {
-  container = await new PostgreSqlContainer("postgres:16-alpine")
-    .withDatabase("testdb")
-    .withUsername("test")
-    .withPassword("test")
-    .start();
-
-  const connectionString = container.getConnectionUri();
-  pool = new Pool({ connectionString });
-  dbInstance = drizzle(pool, { schema });
-
-  // Run Drizzle migrations against the testcontainer
-  const migrationsFolder = path.resolve(process.cwd(), "drizzle");
-  try {
-    await migrate(dbInstance, { migrationsFolder });
-  } catch {
-    // Fallback: if no migration files, create tables from schema directly
-    // This is acceptable for smoke tests
-  }
-
-  // Expose DATABASE_URL so route handlers that read process.env can find the test DB
-  process.env.DATABASE_URL = connectionString;
-}, 60_000);
-
-afterAll(async () => {
-  if (pool) await pool.end();
-  if (container) await container.stop();
-});
-
-/** Get the testcontainer-backed Drizzle instance. */
-export function getDb(): NodePgDatabase<typeof schema> {
-  if (!dbInstance) throw new Error("Test DB not initialized — beforeAll has not run");
-  return dbInstance;
+/**
+ * Get the Drizzle instance backed by the testcontainer DB.
+ * DATABASE_URL is set by global-setup.ts before this module is imported.
+ */
+export function getDb(): SchemaDb {
+  return db as unknown as SchemaDb;
 }
 
-/** Get the raw connection string for the testcontainer. */
+/** Get the connection string for the testcontainer. */
 export function getConnectionString(): string {
-  if (!container) throw new Error("Test container not initialized — beforeAll has not run");
-  return container.getConnectionUri();
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL not set — global-setup.ts has not run");
+  return url;
 }

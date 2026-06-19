@@ -1,8 +1,8 @@
 /**
  * Route-handler invocation helpers — call Next.js App Router route handlers
- * in-process with a real Request object.
+ * in-process with a real NextRequest object.
  */
-import type { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 
 /**
  * Invoke a GET route handler in-process.
@@ -15,7 +15,7 @@ export async function callGet(
   pathname: string,
 ): Promise<Response> {
   const url = `http://localhost:3000${pathname}`;
-  const req = new Request(url, { method: "GET" }) as NextRequest;
+  const req = new NextRequest(url, { method: "GET" });
   return handler(req);
 }
 
@@ -28,10 +28,10 @@ export async function callPost(
   body: unknown,
 ): Promise<Response> {
   const url = `http://localhost:3000${pathname}`;
-  const req = new Request(url, {
+  const req = new NextRequest(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  }) as NextRequest;
+  });
   return handler(req);
 }

@@ -6,6 +6,14 @@ const config: KnipConfig = {
     "src/app/**/page.tsx",
     "src/app/**/layout.tsx",
     "src/app/**/route.ts",
+    // Database schema exports (task 3.2: whitelist as entry points)
+    "src/db/schema.ts",
+    // Test entry points (so knip sees devDependency imports from test files)
+    "src/**/*.test.{ts,tsx}",
+    "tests/**/*.test.{ts,tsx}",
+    "tests/**/setup.ts",
+    "tests/**/helpers.ts",
+    "tests/**/global-setup.ts",
   ],
   project: ["src/**/*.{ts,tsx}", "!src/**/*.test.{ts,tsx}"],
   ignore: [

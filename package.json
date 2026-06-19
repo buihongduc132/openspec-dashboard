@@ -7,14 +7,14 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --project unit",
-    "test:unit": "vitest run --project unit",
-    "test:watch": "vitest --project unit",
-    "test:integration": "vitest run --project integration",
-    "test:coverage": "vitest run --project unit --coverage",
-    "test:integration:coverage": "vitest run --project integration --coverage",
+    "test": "vitest run --config vitest.config.unit.ts",
+    "test:unit": "vitest run --config vitest.config.unit.ts",
+    "test:watch": "vitest --config vitest.config.unit.ts",
+    "test:integration": "vitest run --config vitest.config.integration.ts",
+    "test:coverage": "vitest run --config vitest.config.unit.ts --coverage",
+    "test:integration:coverage": "vitest run --config vitest.config.integration.ts --coverage",
     "knip": "knip",
-    "lint:deadcode": "eslint . --rule '{no-warning-comments: off}'"
+    "lint:deadcode": "node scripts/check-commented-code.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.0",
