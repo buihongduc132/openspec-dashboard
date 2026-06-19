@@ -30,7 +30,8 @@ const CODE_PATTERNS = [
   // Starts with a JS/TS keyword
   /^\s*(const|let|var|function|return|if|for|while|import|export|class|interface|type|switch|case|break|continue|throw|try|catch|finally|await|async|new|enum|namespace|abstract|readonly|private|public|protected|static|get|set)\b/,
   // Function call ending with optional semicolon: foo() or foo.bar();
-  /\w+\s*\([^)]*\)\s*;?\s*$/,
+  // Requires name directly before ( (no space) to avoid prose false positives
+  /[\w.]+\([^)]*\)\s*;?\s*$/,
   // Arrow function syntax
   /=>/,
 ];
