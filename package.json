@@ -13,7 +13,7 @@
     "test:integration": "vitest run --config vitest.config.integration.ts",
     "test:coverage": "vitest run --config vitest.config.unit.ts --coverage",
     "test:integration:coverage": "vitest run --config vitest.config.integration.ts --coverage",
-    "knip": "knip",
+    "knip": "knip --include files,dependencies",
     "lint:deadcode": "node scripts/check-commented-code.mjs"
   },
   "dependencies": {

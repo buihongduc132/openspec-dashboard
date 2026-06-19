@@ -16,6 +16,9 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 
+# Test coverage
+coverage/
+
 # Environment & secrets (NEVER commit)
 .env
 .env.*
