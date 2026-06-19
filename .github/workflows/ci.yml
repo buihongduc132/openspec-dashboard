@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit Tests (lines > 80%)
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://placeholder@localhost/placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+      - name: Verify coverage threshold (lines > 80%)
+        run: |
+          if [ ! -f coverage/unit/coverage-summary.json ]; then
+            echo "ERROR: coverage summary not produced"
+            exit 1
+          fi
+          python3 -c "
+          import json
+          d = json.load(open('coverage/unit/coverage-summary.json'))
+          total = d.get('total', {})
+          lines_pct = total.get('lines', {}).get('pct', 0)
+          print(f'Unit test line coverage: {lines_pct}%')
+          if lines_pct < 80:
+              print(f'FAIL: line coverage {lines_pct}% < 80% threshold')
+              exit(1)
+          print('PASS: line coverage meets threshold')
+          "
+
+  integration-tests:
+    name: Integration Tests (lines > 40%)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: test
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: Run integration tests with coverage
+        run: npm run test:integration:coverage
+      - name: Verify coverage instrumentation ON (real per-file data)
+        run: |
+          if [ ! -f coverage/integration/coverage-summary.json ]; then
+            echo "ERROR: coverage summary not produced — instrumentation may be OFF"
+            exit 1
+          fi
+          python3 -c "
+          import json
+          d = json.load(open('coverage/integration/coverage-summary.json'))
+          total = d.get('total', {})
+          lines_pct = total.get('lines', {}).get('pct', 0)
+          files = [k for k in d.keys() if k != 'total']
+          print(f'Integration test line coverage: {lines_pct}% across {len(files)} files')
+          if lines_pct == 0 and len(files) == 0:
+              print('FAIL: no per-file line data — instrumentation is OFF or zero files covered')
+              exit(1)
+          if lines_pct < 40:
+              print(f'FAIL: line coverage {lines_pct}% < 40% threshold')
+              exit(1)
+          print('PASS: line coverage meets threshold and instrumentation is ON')
+          "
+
+  dead-code:
+    name: Dead Code Detection
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://placeholder@localhost/placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: Run knip (dead-code / unused exports)
+        run: npm run knip
+      - name: Run dead-code lint rule
+        run: npm run lint:deadcode
