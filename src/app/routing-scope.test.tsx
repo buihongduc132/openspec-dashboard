@@ -59,8 +59,9 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+const TEST_UUID = "00000000-0000-4000-8000-000000000001";
 const singleProjectRow = {
-  id: "proj-1",
+  id: TEST_UUID,
   name: "Solo Tracked Project",
   description: null,
   rootPath: "/repos/solo",
@@ -108,7 +109,7 @@ describe("Collective ↔ single-project scope routing (task 5.3)", () => {
 
     const mod = await import("@/app/projects/[id]/layout");
     const ui = await mod.default({
-      params: Promise.resolve({ id: "proj-1" }),
+      params: Promise.resolve({ id: TEST_UUID }),
       children: <div data-testid="page-body">project body</div>,
     });
     render(ui);
@@ -126,7 +127,7 @@ describe("Collective ↔ single-project scope routing (task 5.3)", () => {
 
     const mod = await import("@/app/projects/[id]/layout");
     const ui = await mod.default({
-      params: Promise.resolve({ id: "proj-1" }),
+      params: Promise.resolve({ id: TEST_UUID }),
       children: <div data-testid="page-body">project body</div>,
     });
     render(ui);

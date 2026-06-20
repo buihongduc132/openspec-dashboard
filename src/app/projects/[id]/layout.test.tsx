@@ -14,8 +14,9 @@ import { render, screen } from "@testing-library/react";
  * unchanged.
  */
 
+const TEST_UUID = "00000000-0000-4000-8000-000000000003";
 const projectRow = {
-  id: "proj-1",
+  id: TEST_UUID,
   name: "Some Project",
   description: null,
   rootPath: "/repos/some-project",
@@ -64,7 +65,7 @@ describe("Single-project layout — 'All projects' back-link (task 5.1)", () => 
     const ProjectLayout = mod.default;
 
     const ui = await ProjectLayout({
-      params: Promise.resolve({ id: "proj-1" }),
+      params: Promise.resolve({ id: TEST_UUID }),
       children: <div data-testid="page-body">project page body</div>,
     });
     render(ui);

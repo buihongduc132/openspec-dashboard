@@ -14,8 +14,9 @@ import { render, screen, cleanup } from "@testing-library/react";
  * "All projects › <ProjectName>" while inside a single-project view.
  */
 
+const TEST_UUID = "00000000-0000-4000-8000-000000000002";
 const projectRow = {
-  id: "proj-1",
+  id: TEST_UUID,
   name: "My Tracked Project",
   description: null,
   rootPath: "/repos/my-project",
@@ -70,7 +71,7 @@ describe("Single-project layout — active project name breadcrumb (task 5.2)", 
     const ProjectLayout = mod.default;
 
     const ui = await ProjectLayout({
-      params: Promise.resolve({ id: "proj-1" }),
+      params: Promise.resolve({ id: TEST_UUID }),
       children: <div data-testid="page-body">project page body</div>,
     });
     render(ui);
