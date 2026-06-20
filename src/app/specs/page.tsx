@@ -6,6 +6,9 @@ import Link from "next/link";
 import { db } from "@/db";
 import { specDomains, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,7 @@ export default async function SpecsPage() {
       purpose: specDomains.purpose,
       projectId: specDomains.projectId,
       projectName: projects.name,
+      projectRootPath: projects.rootPath,
     })
     .from(specDomains)
     .innerJoin(projects, eq(specDomains.projectId, projects.id));
@@ -51,12 +55,41 @@ export default async function SpecsPage() {
           </Card>
         ) : (
           domains.map((d) => (
-            <Link key={d.id} href={`/projects/${d.projectId}/specs/${d.id}`}>
-              <Card className="h-full border-border/60 shadow-none transition-all hover:border-border hover:shadow-sm">
+            <div key={d.id} className="relative">
+              {/* Full-card navigation overlay (z-0) so the icon-only Copy
+               * reference control (z-10) stays clickable. */}
+              <Link
+                href={`/projects/${d.projectId}/specs/${d.id}`}
+                className="absolute inset-0 z-0"
+                aria-label={d.name}
+              />
+              <Card className="relative h-full border-border/60 shadow-none transition-all hover:border-border hover:shadow-sm">
                 <CardHeader className="pb-2 pt-4">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-emerald-500" />
-                    <CardTitle className="font-mono text-sm">{d.name}</CardTitle>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-emerald-500" />
+                      <CardTitle className="font-mono text-sm">{d.name}</CardTitle>
+                    </div>
+                    {/*
+                     * Icon-only Copy reference control per spec domain (task
+                     * 4.5). Built from the already-fetched domain row +
+                     * project rootPath (design D1). z-10 keeps it above the
+                     * card navigation overlay.
+                     */}
+                    <CopyReferenceButton
+                      iconOnly
+                      className="relative z-10 h-7 w-7"
+                      reference={buildEntityReference(
+                        "spec-domain",
+                        { id: d.id, name: d.name },
+                        {
+                          repoRoot: d.projectRootPath,
+                          projectRootPath: d.projectRootPath,
+                          projectName: d.projectName,
+                          domainName: d.name,
+                        } satisfies ReferenceContext,
+                      )}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -64,7 +97,7 @@ export default async function SpecsPage() {
                   <p className="mt-2 text-[10px] text-muted-foreground">{d.projectName}</p>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           ))
         )}
       </div>

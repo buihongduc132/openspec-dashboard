@@ -20,6 +20,9 @@ import {
   User,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +100,32 @@ export default async function ChangeDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/*
+                * Copy reference control (task 4.3 / spec: Copy affordance on
+                * every entity surface). The change reference is built
+                * server-side from the already-fetched change row + project
+                * rootPath (design D1 — no extra DB round-trip). The repo-root
+                * base defaults to the project rootPath (design D2) and the
+                * change name is threaded through the context so the path
+                * resolver can derive `<rootPath>/openspec/changes/<name>`
+                * (path-resolution table D8).
+                */}
+              <CopyReferenceButton
+                reference={buildEntityReference(
+                  "change",
+                  {
+                    id: change.id,
+                    name: change.name,
+                    status: change.status,
+                  },
+                  {
+                    repoRoot: project.rootPath,
+                    projectRootPath: project.rootPath,
+                    projectName: project.name,
+                    changeName: change.name,
+                  } satisfies ReferenceContext,
+                )}
+              />
               <Button variant="outline" size="sm">Verify</Button>
               <Button size="sm">Run Apply</Button>
             </div>

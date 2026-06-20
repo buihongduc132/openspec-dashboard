@@ -28,3 +28,64 @@ export function timeAgo(date: Date | string | null): string {
   }
   return "just now";
 }
+
+// ── v4 dashboard view helpers ───────────────────────────────────────────────
+
+/** Deterministic accent palette cycled by index (mirrors v4 mock palette). */
+export const ACCENT_PALETTE = [
+  "#2563eb", // blue
+  "#7c3aed", // violet
+  "#0f766e", // teal
+  "#ea580c", // orange
+  "#db2777", // pink
+  "#0891b2", // cyan
+  "#ca8a04", // amber
+  "#4f46e5", // indigo
+] as const;
+
+export function accentForIndex(index: number): string {
+  return ACCENT_PALETTE[index % ACCENT_PALETTE.length];
+}
+
+export function getInitials(name: string): string {
+  return (
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  );
+}
+
+export function pluralize(value: number, noun: string): string {
+  return `${value} ${noun}${value === 1 ? "" : "s"}`;
+}
+
+export type Health = "On track" | "Needs review" | "At risk";
+
+export function healthFromProgress(progress: number): Health {
+  if (progress >= 80) return "On track";
+  if (progress >= 50) return "Needs review";
+  return "At risk";
+}
+
+export type PlanStatus = "Draft" | "Review" | "Ready" | "Blocked" | "Shipped";
+
+/** Map OpenSpec task status (DB) → v4 plan-board status. */
+export function taskStatusToPlan(status: string): PlanStatus {
+  switch (status) {
+    case "ready":
+      return "Ready";
+    case "in-progress":
+    case "review":
+      return "Review";
+    case "done":
+      return "Shipped";
+    case "blocked":
+      return "Blocked";
+    case "backlog":
+    default:
+      return "Draft";
+  }
+}

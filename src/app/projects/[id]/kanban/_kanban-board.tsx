@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 type Task = {
   id: string;
@@ -62,10 +65,19 @@ export default function KanbanBoard({
   initialTasks,
   changeMap,
   projectId,
+  projectName,
+  projectRootPath,
 }: {
   initialTasks: Task[];
   changeMap: ChangeMap;
   projectId: string;
+  /** Project name — flows into the task reference metadata (projectName). */
+  projectName?: string;
+  /**
+   * Project rootPath — the filesystem anchor used to resolve the task's
+   * absolute path inside the reference payload (design D2/D8).
+   */
+  projectRootPath?: string;
 }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -245,6 +257,8 @@ export default function KanbanBoard({
         <TaskDetailModal
           task={selectedTask}
           changeName={changeMap.get(selectedTask.changeId) || ""}
+          projectName={projectName}
+          projectRootPath={projectRootPath}
           onClose={() => setSelectedTask(null)}
           onUpdate={(updates) => {
             setTasks((prev) =>
@@ -261,11 +275,15 @@ export default function KanbanBoard({
 function TaskDetailModal({
   task,
   changeName,
+  projectName,
+  projectRootPath,
   onClose,
   onUpdate,
 }: {
   task: Task;
   changeName: string;
+  projectName?: string;
+  projectRootPath?: string;
   onClose: () => void;
   onUpdate: (updates: Partial<Task>) => void;
 }) {
@@ -273,6 +291,32 @@ function TaskDetailModal({
   const [editTitle, setEditTitle] = useState(task.title);
   const [editAssignee, setEditAssignee] = useState(task.assignee || "");
   const [editPriority, setEditPriority] = useState(task.priority || "medium");
+
+  // Build the canonical task reference (design D1) from the open task plus
+  // the relational context the kanban already holds (changeName + project
+  // rootPath + projectName). The project rootPath anchors the absolute path;
+  // when absent we fall back to the configured repo-root base so the payload
+  // still resolves to a sensible location.
+  const reference = useMemo(() => {
+    const ctx: ReferenceContext = {
+      repoRoot: projectRootPath ?? "",
+      projectName,
+      projectRootPath,
+      changeName,
+    };
+    return buildEntityReference(
+      "task",
+      {
+        id: task.id,
+        taskNumber: task.taskNumber,
+        title: task.title,
+        status: task.status,
+        assignee: task.assignee,
+        priority: task.priority,
+      },
+      ctx,
+    );
+  }, [task, changeName, projectName, projectRootPath]);
 
   const handleSave = async () => {
     try {
@@ -314,6 +358,10 @@ function TaskDetailModal({
             )}
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div className="mb-4">
+          <CopyReferenceButton reference={reference} />
         </div>
 
         {task.description && (

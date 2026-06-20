@@ -2,6 +2,9 @@ import { db } from "@/db";
 import { workspaces, workspaceLinks, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +56,24 @@ export default async function WorkspacesPage() {
                     <p className="text-sm text-slate-400">Opener: {workspace.opener}</p>
                   )}
                 </div>
-                <span className="text-sm text-slate-400">{links.length} linked repos</span>
+                <div className="flex items-center gap-3">
+                  {/*
+                   * Icon-only Copy reference control per workspace (task 4.5).
+                   * Built from the already-fetched workspace row (design D1).
+                   * Workspaces live in the dashboard DB, so the payload path
+                   * is a logical `dashboard://` pointer.
+                   */}
+                  <CopyReferenceButton
+                    iconOnly
+                    className="h-7 w-7"
+                    reference={buildEntityReference(
+                      "workspace",
+                      { id: workspace.id, name: workspace.name },
+                      { repoRoot: "" } satisfies ReferenceContext,
+                    )}
+                  />
+                  <span className="text-sm text-slate-400">{links.length} linked repos</span>
+                </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {links.map((link) => (

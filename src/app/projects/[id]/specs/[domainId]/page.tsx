@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BookOpen, ListChecks, ListTree } from "lucide-react";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +45,19 @@ export default async function DomainSpecPage({
         : eq(scenarios.id, "00000000-0000-0000-0000-000000000000")
     );
 
+  // Shared reference context for both the domain and its per-requirement
+  // copy controls (design D1 — server builds the canonical reference from
+  // already-fetched rows, no extra DB round-trip). The repo-root base
+  // defaults to the project rootPath (design D2); the domain name threads
+  // through so the path resolver derives `<rootPath>/openspec/specs/<name>`
+  // (path-resolution table D8).
+  const referenceContext = {
+    repoRoot: project.rootPath,
+    projectRootPath: project.rootPath,
+    projectName: project.name,
+    domainName: domain.name,
+  } satisfies ReferenceContext;
+
   return (
     <div className="px-6 py-8 lg:px-10">
       <Button variant="ghost" size="sm" asChild className="mb-4 gap-1 px-2 text-muted-foreground">
@@ -51,11 +67,36 @@ export default async function DomainSpecPage({
       </Button>
 
       <div className="mb-6">
-        <Badge variant="secondary" className="mb-2 gap-1 rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
-          <BookOpen className="h-3 w-3" /> {domain.name}
-        </Badge>
-        <h1 className="text-2xl font-semibold tracking-tight">{domain.purpose ?? domain.name}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{project.name}</p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <Badge variant="secondary" className="mb-2 gap-1 rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+              <BookOpen className="h-3 w-3" /> {domain.name}
+            </Badge>
+            <h1 className="text-2xl font-semibold tracking-tight">{domain.purpose ?? domain.name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{project.name}</p>
+          </div>
+          {/**
+           * Copy reference control for the domain (task 4.4 / spec: Copy
+           * affordance on every entity surface). The domain reference is
+           * built server-side from the already-fetched domain row + project
+           * rootPath (design D1 — no extra DB round-trip). The repo-root
+           * base defaults to the project rootPath (design D2) and the
+           * domain name is threaded through the context so the path
+           * resolver derives `<rootPath>/openspec/specs/<domainName>`
+           * (path-resolution table D8).
+           */}
+          <CopyReferenceButton
+            reference={buildEntityReference(
+              "spec-domain",
+              {
+                id: domain.id,
+                name: domain.name,
+                title: domain.purpose,
+              },
+              referenceContext,
+            )}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -72,12 +113,31 @@ export default async function DomainSpecPage({
               ) : (
                 reqs.map((r, i) => (
                   <div key={r.id} className="rounded-md border border-border/60 p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-muted-foreground">RQ-{i + 1}</span>
-                      <span className="font-medium text-sm">{r.title}</span>
-                      <Badge variant={strengthColor[r.strength ?? "SHALL"] ?? "slate"} className="rounded-sm text-[10px]">
-                        {r.strength}
-                      </Badge>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-muted-foreground">RQ-{i + 1}</span>
+                        <span className="font-medium text-sm">{r.title}</span>
+                        <Badge variant={strengthColor[r.strength ?? "SHALL"] ?? "slate"} className="rounded-sm text-[10px]">
+                          {r.strength}
+                        </Badge>
+                      </div>
+                      {/**
+                       * Per-requirement copy reference control (task 4.4 /
+                       * spec: Copy affordance on every entity surface). Each
+                       * requirement reference is built server-side from the
+                       * already-fetched requirement row with the domain name
+                       * in context, so the path resolver derives
+                       * `<rootPath>/openspec/specs/<domainName>/spec.md` and
+                       * the readInstruction points the agent at the
+                       * requirement title (design D1, path table D8).
+                       */}
+                      <CopyReferenceButton
+                        reference={buildEntityReference(
+                          "requirement",
+                          { id: r.id, title: r.title },
+                          referenceContext,
+                        )}
+                      />
                     </div>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.body}</p>
                   </div>

@@ -13,6 +13,7 @@ All product direction lives under `flow/`. Every file has a one-line reference b
 
 ### Findings (research / data model)
 - `flow/findings/2026-06-18_openspec-data-model.md` — OpenSpec directory layout, artifact taxonomy, delta grammar, CLI command surface, schema resolution, what OpenSpec does NOT have (gaps we fill).
+- `flow/findings/2026-06-19_entity-reference-capability.md` — **entity-reference** capability (Copy reference): canonical payload builder, two copy formats (markdown/JSON), `GET /api/reference/{type}/{id}` read-only endpoint, path-resolution table, clipboard fallback.
 
 ### Requirements (elaborated, strong-voice, grouped by domain)
 - `flow/requirements/README.md` — **index**: cross-cutting invariants INV-1..INV-8 (+INV-4a), Section Granularity Table (INV-7), Authority Contract (Markdown vs sidecar), Decisions D-* (single source of truth), NFRs.

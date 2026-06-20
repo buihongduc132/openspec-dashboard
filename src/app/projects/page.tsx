@@ -20,6 +20,9 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -159,6 +162,30 @@ export default async function ProjectsPage() {
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
                   </Button>
+                  {/*
+                   * Icon-only Copy reference control per project card (task
+                   * 4.5 / spec: Copy affordance on every entity surface).
+                   * Built from the already-fetched project row (design D1) —
+                   * no extra DB round-trip. Kept above the full-card link via
+                   * z-10 so it stays clickable.
+                   */}
+                  <CopyReferenceButton
+                    iconOnly
+                    className="relative z-10 h-7 w-7"
+                    reference={buildEntityReference(
+                      "project",
+                      {
+                        id: s.project.id,
+                        name: s.project.name,
+                        rootPath: s.project.rootPath,
+                      },
+                      {
+                        repoRoot: s.project.rootPath,
+                        projectRootPath: s.project.rootPath,
+                        projectName: s.project.name,
+                      } satisfies ReferenceContext,
+                    )}
+                  />
                 </div>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-4 pt-0">

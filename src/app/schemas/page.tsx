@@ -5,6 +5,9 @@ import { Blocks, Plus, Check } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
 import { schemas } from "@/db/schema";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +47,26 @@ export default async function SchemasPage() {
                     <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
                   )}
                 </div>
-                {s.isActive && (
-                  <Badge variant="success" className="gap-1 rounded-sm text-[10px]">
-                    <Check className="h-3 w-3" /> Active
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {/*
+                   * Icon-only Copy reference control per schema (task 4.5).
+                   * Built from the already-fetched schema row (design D1).
+                   */}
+                  <CopyReferenceButton
+                    iconOnly
+                    className="h-7 w-7"
+                    reference={buildEntityReference(
+                      "schema",
+                      { id: s.id, name: s.name, status: s.isActive ? "active" : null },
+                      { repoRoot: "" } satisfies ReferenceContext,
+                    )}
+                  />
+                  {s.isActive && (
+                    <Badge variant="success" className="gap-1 rounded-sm text-[10px]">
+                      <Check className="h-3 w-3" /> Active
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>

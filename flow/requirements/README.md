@@ -24,8 +24,8 @@ non-goals. Non-functional requirements (NFRs) live at the bottom of this index.
 ## Cross-cutting invariants (apply to EVERY requirement)
 
 > Non-negotiable. If a feature violates one, the feature is wrong. **This is the complete
-> set: INV-1..INV-8 plus INV-4a.** There is no INV-9/10/11; references to "INV-1..INV-11"
-> elsewhere are typos and mean "INV-1..INV-8 (+INV-4a)".
+> set: INV-1..INV-9.** There is no INV-10/11; references to "INV-1..INV-11" elsewhere are
+> typos and mean "INV-1..INV-9".
 
 - **INV-1 Filesystem is truth (canonical artifacts only).** The **canonical** OpenSpec
   artifacts (`openspec/specs/`, `openspec/changes/<name>/{proposal,design,specs,tasks}.md`,
@@ -86,6 +86,13 @@ non-goals. Non-functional requirements (NFRs) live at the bottom of this index.
 - **INV-8 Searchable by default (canonical + dashboard entities).** Any canonical artifact
   OR dashboard entity (tasks, comments, sub-checklist items, proposals, designs) is indexed
   for full-text search within its project scope within 2s of write.
+- **INV-9 Test-first, no dead code (applies to EVERY change).** Every production-code change
+  is accompanied by tests written FIRST that fail (red), then the change makes them pass
+  (green). Coverage gates are non-negotiable: **unit/TDD line coverage > 80%** and
+  **integration-test line coverage > 40%** (line coverage MUST be turned ON during
+  integration runs to actually verify, not estimated). **No dead code** — uncovered,
+  unreferenced, or commented-out code is removed, never left in. A change that lowers these
+  numbers or ships dead code is wrong, full stop. See D-TDD + NFR-12.
 
 ### Section Granularity Table (INV-7)
 
@@ -142,6 +149,7 @@ NOT by column name.
 | D-SchemaEditor | Visual schema form builder is Phase 3 (D5 in older drafts = D-SchemaEditor). Phase 1/2 ship raw YAML editor only. |
 | D-SecretHygiene | `.gitignore` + pre-commit gitleaks + pre-push gitleaks is a **Phase 0** deliverable (already implemented in the real repo as of commit `39cb79b`). Two-person publication gate is Phase 4.4. |
 | D-AutoPR | Auto-PR on archive REQUIRES `autoPush: true` (default off). There is no "auto-PR without push" — forges require the branch to exist remotely. |
+| D-TDD | **TDD is mandatory for all code.** Tests are written FIRST (red), then implementation (green), then refactor. No production code is merged without a failing test that drove it. Coverage gates enforced in CI: **unit/TDD line coverage > 80%**, **integration-test line coverage > 40%** (line coverage MUST be turned on during integration runs to verify, not as an afterthought). No dead code is permitted — uncovered, unreferenced, or commented-out code blocks are removed, not left in. This applies to every phase and every capability; a phase's verifier-loop gate checks these coverage numbers and the absence of dead code before approval. |
 
 ## Non-functional requirements (NFRs)
 
@@ -158,3 +166,4 @@ NOT by column name.
 | NFR-9 | Accessibility | **WCAG 2.1 AA** (all SC) + **WCAG 2.2 AA** (all 5 new SC: 2.4.11 Focus Not Obscured Min, 2.5.7 Dragging Movements, 2.5.8 Target Size Minimum, 3.3.7 Redundant Entry, 3.3.8 Accessible Auth Min) on board + editors + dashboards + modals | axe-core per-component (Phase 1) **+ manual AT testing (NVDA/VoiceOver/JAWS) + keyboard-interaction scripts + visual inspection for Target Size / Focus Not Obscured**; DnD-specific manual AT in Phase 1.3; not deferred to Phase 4 |
 | NFR-10 | Auditability | Every mutating canonical-artifact API call emits an immutable audit record | Audit-emission contract test on every mutating endpoint (Phase 0) |
 | NFR-11 | Threat-model coverage | Every internet-facing surface has a documented threat model | Threat-model doc reviewed at Phase 0 gate |
+| NFR-12 | Test coverage (TDD discipline) | **Unit/TDD line coverage > 80%**; **Integration line coverage > 40%**; **Zero dead code** (no unreferenced / commented-out / uncovered production code) | CI coverage gate with `c8`/`nyc` (Node) or language-equivalent; line coverage MUST be instrumented ON during integration test runs; dead-code detector (e.g. ts-prune / knip for TS) in CI. Applies from Phase 0 onward (Phase 0). |

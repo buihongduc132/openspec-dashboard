@@ -23,6 +23,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 const statusMeta: Record<string, { label: string; variant: "slate" | "info" | "warning" | "success" | "purple" }> = {
   proposed: { label: "Proposed", variant: "info" },
@@ -136,6 +139,29 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/*
+                * Copy reference control (task 4.2 / spec: Copy affordance on
+                * every entity surface). The project row is already fetched
+                * above; the reference payload is built server-side (design D1)
+                * and handed to the client control so there is no extra DB
+                * round-trip. The repo-root base defaults to the project
+                * rootPath (design D2).
+                */}
+              <CopyReferenceButton
+                reference={buildEntityReference(
+                  "project",
+                  {
+                    id: project.id,
+                    name: project.name,
+                    rootPath: project.rootPath,
+                  },
+                  {
+                    repoRoot: project.rootPath,
+                    projectRootPath: project.rootPath,
+                    projectName: project.name,
+                  } satisfies ReferenceContext,
+                )}
+              />
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/projects/${id}/kanban`}>Kanban</Link>
               </Button>

@@ -19,6 +19,9 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +50,7 @@ export default async function ChangesPage() {
       updatedAt: changes.updatedAt,
       projectId: changes.projectId,
       projectName: projects.name,
+      projectRootPath: projects.rootPath,
     })
     .from(changes)
     .innerJoin(projects, eq(changes.projectId, projects.id))
@@ -165,11 +169,17 @@ export default async function ChangesPage() {
               const taskPct = c.taskCount > 0 ? Math.round((c.doneTasks / c.taskCount) * 100) : 0;
               const artifactOrder = ["proposal", "specs", "design", "tasks"] as const;
               return (
-                <Link
+                <div
                   key={c.id}
-                  href={`/projects/${c.projectId}/changes/${c.id}`}
-                  className="group flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center"
+                  className="group relative flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center"
                 >
+                  {/* Full-row navigation as an absolute overlay (z-0) so the
+                   * icon-only Copy reference control (z-10) stays clickable. */}
+                  <Link
+                    href={`/projects/${c.projectId}/changes/${c.id}`}
+                    className="absolute inset-0 z-0"
+                    aria-label={c.name}
+                  />
                   <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-violet-500/10 group-hover:text-violet-500">
                       <GitBranchPlus className="h-4 w-4" />
@@ -211,6 +221,30 @@ export default async function ChangesPage() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-5 sm:gap-6">
+                    {/*
+                     * Icon-only Copy reference control per change row (task
+                     * 4.5). Built from the already-fetched change row +
+                     * project rootPath (design D1). z-10 keeps it above the
+                     * row navigation overlay.
+                     */}
+                    <CopyReferenceButton
+                      iconOnly
+                      className="relative z-10 h-7 w-7"
+                      reference={buildEntityReference(
+                        "change",
+                        {
+                          id: c.id,
+                          name: c.name,
+                          status: c.status,
+                        },
+                        {
+                          repoRoot: c.projectRootPath,
+                          projectRootPath: c.projectRootPath,
+                          projectName: c.projectName,
+                          changeName: c.name,
+                        } satisfies ReferenceContext,
+                      )}
+                    />
                     {c.taskCount > 0 && (
                       <div className="w-24">
                         <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
@@ -233,7 +267,7 @@ export default async function ChangesPage() {
                     </div>
                     <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

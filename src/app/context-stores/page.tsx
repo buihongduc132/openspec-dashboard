@@ -1,6 +1,9 @@
 import { db } from "@/db";
 import { contextStores, initiatives } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { CopyReferenceButton } from "@/components/copy-reference-button";
+import { buildEntityReference } from "@/lib/entity-reference/build";
+import type { ReferenceContext } from "@/lib/entity-reference/types";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +49,21 @@ export default async function ContextStoresPage() {
                   <p className="text-sm font-mono text-slate-400">{store.path}</p>
                 </div>
                 <div className="flex items-center gap-3">
+                  {/*
+                   * Icon-only Copy reference control per context store (task
+                   * 4.5). Built from the already-fetched store row (design
+                   * D1). Context stores live in the dashboard DB, so the
+                   * payload path is a logical `dashboard://` pointer.
+                   */}
+                  <CopyReferenceButton
+                    iconOnly
+                    className="h-7 w-7"
+                    reference={buildEntityReference(
+                      "context-store",
+                      { id: store.id, name: store.name, path: store.path },
+                      { repoRoot: "" } satisfies ReferenceContext,
+                    )}
+                  />
                   {store.hasGit && (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                       Git initialized
