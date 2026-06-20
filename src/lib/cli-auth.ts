@@ -86,9 +86,10 @@ export type CliAuthResult =
 
 /** Args the helper passes to each CLI's auth-status command. */
 function authStatusArgs(cli: GitCli): string[] {
-  // `gh` supports `--json host,user`; `glab` supports `--json host`.
+  // `gh` only exposes `hosts` (plural, array of authenticated hosts); it
+  // rejects unknown fields like `user`. `glab` exposes `host` (singular).
   return cli === "gh"
-    ? ["auth", "status", "--json", "host,user"]
+    ? ["auth", "status", "--json", "hosts"]
     : ["auth", "status", "--json", "host"];
 }
 
@@ -115,11 +116,28 @@ export async function checkCliAuth(
 
   if (exitCode === 0) {
     const entry = safeParseFirstObject(stdout);
-    if (entry?.host) {
+    // `gh` returns `hosts` (string[]); `glab` returns `host` (string).
+    const hostList = Array.isArray(entry?.hosts)
+      ? (entry.hosts as unknown[]).filter(
+          (h): h is string => typeof h === "string",
+        )
+      : [];
+    const singleHost =
+      typeof entry?.host === "string" ? (entry.host as string) : null;
+
+    if (hostList.length > 0) {
       return {
         status: "ok",
         authenticated: true,
-        host: entry.host,
+        host: hostList[0] as string,
+        ...(typeof entry.user === "string" ? { user: entry.user } : {}),
+      };
+    }
+    if (singleHost) {
+      return {
+        status: "ok",
+        authenticated: true,
+        host: singleHost,
         ...(typeof entry.user === "string" ? { user: entry.user } : {}),
       };
     }

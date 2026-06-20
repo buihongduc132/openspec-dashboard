@@ -104,9 +104,9 @@ describe("src/lib/cli-auth — task 4.2 CLI detection helper", () => {
   });
 
   describe("checkCliAuth", () => {
-    it("spawns `gh auth status --json host,user` and reports authenticated=true on exit 0", async () => {
+    it("spawns `gh auth status --json hosts` and reports authenticated=true on exit 0", async () => {
       const child = fakeChild({
-        stdout: JSON.stringify({ host: "github.com", user: "octocat" }),
+        stdout: JSON.stringify({ hosts: ["github.com"], user: "octocat" }),
         exitCode: 0,
       });
       const captured: { cmd?: string; args?: string[] } = {};
@@ -117,7 +117,7 @@ describe("src/lib/cli-auth — task 4.2 CLI detection helper", () => {
         "auth",
         "status",
         "--json",
-        "host,user",
+        "hosts",
       ]);
       expect(res).toEqual({
         status: "ok",
