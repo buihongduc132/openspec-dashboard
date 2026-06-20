@@ -37,6 +37,16 @@ export type ProjectView = {
   activeChanges: number;
   flow: Record<FlowKey, FlowItem[]>;
   plan: PlanRow[];
+  /**
+   * True for stubbed remote-git enrollments (`enrollmentSource = "remote-git"`,
+   * `projected = false`) that are recorded but not yet cloned/projected. The
+   * collective dashboard renders these distinctly so the user can tell them
+   * apart from fully-projected projects (task 4.5).
+   */
+  pendingRemote?: boolean;
+  /** Set only for pending remote projects (the remote git URL that will be
+   * cloned once git integration lands, req 08.4). */
+  remoteGitUrl?: string | null;
 };
 
 export type ScopedFlowItem = FlowItem & {

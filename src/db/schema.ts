@@ -18,6 +18,16 @@ export const projects = pgTable("projects", {
   defaultSchema: varchar("default_schema").default("spec-driven"),
   context: text("context"),
   configYaml: text("config_yaml"),
+  // How this project entered the collective dashboard. Existing rows default
+  // to "local"; remote-git enrollments set "remote-git" until clone+projection
+  // lands with git integration (req 08.4).
+  enrollmentSource: varchar("enrollment_source").default("local").notNull(),
+  // Set only when enrollmentSource = "remote-git"; null for local projects.
+  remoteGitUrl: text("remote_git_url"),
+  // Whether this project's OpenSpec contents have been projected into the
+  // dashboard. Local enrollments set this true; stubbed remote-git enrollments
+  // leave it false until clone+projection lands with git integration (req 08.4).
+  projected: boolean("projected").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

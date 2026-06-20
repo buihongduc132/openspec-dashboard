@@ -322,8 +322,8 @@ export function buildEntityReference(
     case "initiative":
       return assembleInitiative(row as InitiativeBuildRow, ctx);
     default: {
-      // Exhaustiveness guard — compile error if a new kind is added without a
-      // case. Runtime guard mirrors the API endpoint's 400 taxonomy check.
+      // Exhaustiveness guard — throws if a new kind is added without a
+      // branch mirrors the API endpoint's 400 taxonomy check.
       const _exhaustive: never = type;
       throw new TypeError(`Unsupported entity type: ${String(_exhaustive)}`);
     }

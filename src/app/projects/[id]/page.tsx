@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
   FolderKanban,
-  ArrowLeft,
   GitBranchPlus,
   BookOpen,
   CheckCircle2,
@@ -110,12 +109,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <Button variant="ghost" size="sm" asChild className="mb-4 gap-1 px-2 text-muted-foreground">
-        <Link href="/projects">
-          <ArrowLeft className="h-3.5 w-3.5" /> All projects
-        </Link>
-      </Button>
-
       {/* Project header */}
       <Card className="relative mb-6 overflow-hidden border-border/60 bg-gradient-to-br from-indigo-500/5 via-transparent to-violet-500/5 shadow-none dark:from-indigo-500/10">
         <div className="absolute inset-0 bg-grid opacity-40 [mask-image:radial-gradient(ellipse_80%_60%_at_0%_0%,#000_30%,transparent_100%)]" />

@@ -16,7 +16,7 @@ import type { BuildRow } from "@/lib/entity-reference/build";
 // ─── Mock @/db with a chainable, thenable builder driven by a results queue ──
 //
 // The project page issues ~7 awaited queries in a known order. Each terminal
-// await pulls the next pre-configured result array from `RESULTS`. Every chain
+// Each terminal pull grabs the next pre-configured result array from `RESULTS`. Every chain
 // method returns the same thenable builder so awaiting at `.where()` (count
 // queries) or `.limit()` (list queries) both consume exactly one entry.
 

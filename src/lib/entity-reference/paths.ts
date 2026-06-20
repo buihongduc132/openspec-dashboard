@@ -4,7 +4,7 @@
  * Each resolver is a pure function that takes a narrow slice of the entity
  * row plus a {@link ReferenceContext} and returns the resolved
  * `{ path, readInstruction }` pair. Kinds with a real filesystem location
- * return an absolute path under the project's OpenSpec root; kinds with no
+ * yield an absolute path under the project's OpenSpec root; kinds with no
  * natural file location return a `dashboard://` logical path and a
  * `readInstruction` that tells the agent the entity lives in the dashboard
  * database (so it does not attempt a file read that cannot succeed).

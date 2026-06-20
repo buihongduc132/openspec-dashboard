@@ -270,8 +270,8 @@ async function fetchReference(
     }
 
     default: {
-      // Exhaustiveness guard — compile error if a new kind is added without a
-      // case. Unreachable at runtime because the type is validated upstream.
+      // Exhaustiveness guard — throws if a new kind is added without a
+      // branch is unreachable at runtime because the type is validated upstream.
       const _exhaustive: never = type;
       throw new Error(`Unsupported entity type: ${String(_exhaustive)}`);
     }
