@@ -44,3 +44,11 @@ Evidence-based re-diagnosis (DB events for run `eab2c875`):
 **Implication**: openspec-apply is RESUMABLE by design — task state lives on disk (tasks.md checkboxes = 26/67; task-queue.json). Re-dispatching via CLI picks up at task 1.7. Stranded `src/lib/openspec-parser/*` (645 lines, missing `index.ts` barrel) is PARTIAL; the TDD RED phase will detect the unresolvable `@/lib/openspec-parser` import and the GREEN phase completes `index.ts`. No data loss.
 
 **Action**: re-dispatch build-mvp via CLI; trust resumability. If a stall recurs, the run is still safe to re-dispatch (idempotent on task checkboxes).
+
+## Dispatch 2 — 2026-06-20 18:09 (resume, post-correction)
+- **Run-id: `7aa355ed12bd62cb91fcab1872da3190`** ← CLI dispatch, resume after corrected diagnosis
+- Trigger: `archon workflow run openspec-apply <repo> build-openspec-dashboard-mvp` (nohup, log `/tmp/openspec-apply-build-mvp-r2/run.log`)
+- Resume point: task 1.7 (26/67 persisted on disk; resumability proven)
+- Pre-flight: no active runs; REST health ok; origin/main pushed (772b224 RUN.md correction)
+- Status: EXECUTING — discover-change/resolve-runners/apply-instructions/fetch-task-queue/build-context all completed; implement-task active, tool calls firing every 3-5s (stream ALIVE, no stall)
+- Corrected diagnosis CONFIRMED: this run's LLM stream is healthy where the prior run stalled.
