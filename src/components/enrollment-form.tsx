@@ -60,7 +60,9 @@ export function EnrollmentForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path }),
       });
-      const data = await res.json();
+      const data: Record<string, unknown> = await res
+        .json()
+        .catch(() => ({}) as Record<string, unknown>);
       if (!res.ok) {
         setValidation({
           status: "error",
@@ -145,7 +147,9 @@ export function EnrollmentForm() {
           projected: true,
         }),
       });
-      const data = await res.json();
+      const data: Record<string, unknown> = await res
+        .json()
+        .catch(() => ({}) as Record<string, unknown>);
       if (!res.ok) {
         setEnroll({
           status: "error",

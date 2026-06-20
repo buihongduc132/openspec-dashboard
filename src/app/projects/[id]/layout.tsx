@@ -34,6 +34,12 @@ export default async function ProjectLayout({
 }) {
   const { id } = await params;
 
+  // Validate UUID format before querying the database to prevent raw
+  // database errors on malformed URLs (e.g. `/projects/not-a-uuid`).
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(id)) return notFound();
+
   const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
   if (!project) return notFound();
 

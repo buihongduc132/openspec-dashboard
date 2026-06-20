@@ -70,11 +70,20 @@ export async function POST(req: NextRequest) {
   }
 
   const resolved = path.resolve(raw);
-  const { events } = spawnOpenSpecInit(resolved);
+  const { child, events } = spawnOpenSpecInit(resolved);
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const abortHandler = () => {
+        // Kill the child process if the client disconnects to avoid a
+        // resource leak (the async iterator would otherwise block on
+        // stdout/stderr forever).
+        try { child.kill("SIGTERM"); } catch { /* already exited */ }
+        try { controller.close(); } catch { /* already closed */ }
+      };
+      req.signal.addEventListener("abort", abortHandler, { once: true });
+
       try {
         for await (const evt of events) {
           const payload =
@@ -83,7 +92,12 @@ export async function POST(req: NextRequest) {
               : { type: evt.type, data: evt.data };
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
         }
+      } catch {
+        // Client disconnected or stream errored — child already killed by
+        // the abort handler if applicable.
       } finally {
+        req.signal.removeEventListener("abort", abortHandler);
+        try { child.kill("SIGKILL"); } catch { /* already exited */ }
         controller.close();
       }
     },
