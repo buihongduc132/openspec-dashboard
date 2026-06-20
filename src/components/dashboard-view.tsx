@@ -15,6 +15,11 @@ import type {
 
 type Props = {
   projects: ProjectView[];
+  aggregate: {
+    projectCount: number;
+    totalInFlightChanges: number;
+    totalOpenTasks: number;
+  };
 };
 
 /**
@@ -22,7 +27,7 @@ type Props = {
  * search query as client state; all data arrives serialized from the server
  * (real DB rows). Layout + motion language ported from v4 App.tsx.
  */
-export function DashboardView({ projects }: Props) {
+export function DashboardView({ projects, aggregate }: Props) {
   const [activeProjectId, setActiveProjectId] = useState<string>("all");
   const [query, setQuery] = useState("");
 
@@ -105,6 +110,8 @@ export function DashboardView({ projects }: Props) {
     };
   }, [scopedFlow, scopedPlans, scopedProjects]);
 
+  const isEmpty = projects.length === 0;
+
   const activeAccent = selectedProject?.accent ?? "#4f46e5";
   const dashboardTitle = selectedProject
     ? selectedProject.name
@@ -152,6 +159,79 @@ export function DashboardView({ projects }: Props) {
               </Link>
             </div>
           </header>
+
+          {/* Collective-scope breadcrumb — signals the all-projects scope so
+              the collective view is never mistaken for one project (spec:
+              requirement "Collective dashboard landing surface"). */}
+          <nav
+            data-testid="collective-scope"
+            aria-label="Collective scope"
+            className="flex items-center gap-2 text-sm text-muted-foreground animate-reveal"
+          >
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-3 py-1 font-semibold uppercase tracking-[0.18em] text-foreground"
+            >
+              All projects
+            </span>
+            <span className="text-muted-foreground/80">
+              Collective overview across every enrolled project
+            </span>
+          </nav>
+
+          {/* Collective overview — leading cross-project aggregation */}
+          <section
+            data-testid="collective-overview"
+            aria-label="Collective overview across all projects"
+            className="grid gap-4 rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-sm backdrop-blur-sm animate-rise sm:grid-cols-3 sm:p-6"
+          >
+            <CollectiveMetric
+              label="Projects"
+              value={aggregate.projectCount}
+              hint="All projects"
+            />
+            <CollectiveMetric
+              label="Changes in flight"
+              value={aggregate.totalInFlightChanges}
+              hint="Non-completed across all projects"
+            />
+            <CollectiveMetric
+              label="Open tasks"
+              value={aggregate.totalOpenTasks}
+              hint="Non-done across all projects"
+            />
+          </section>
+
+          {/* Empty collective state — when no projects are enrolled yet, the
+              dashboard leads with a clear "no projects enrolled yet" state and
+              a prominent enrollment CTA (spec: requirement "Collective
+              dashboard landing surface", scenario "Empty dashboard before any
+              enrollment"). */}
+          {isEmpty ? (
+            <section
+              data-testid="empty-collective"
+              aria-label="No projects enrolled yet"
+              className="flex flex-col items-center gap-5 rounded-[1.75rem] border border-dashed border-border/70 bg-card/70 p-8 text-center shadow-sm backdrop-blur-sm animate-rise sm:p-12"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <span aria-hidden className="text-3xl">+</span>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                  No projects enrolled yet
+                </h3>
+                <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                  Enroll your first OpenSpec project to start tracking its
+                  specs, changes, and tasks from this collective dashboard.
+                </p>
+              </div>
+              <Link
+                href="/projects/new"
+                className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+              >
+                Enroll a project
+              </Link>
+            </section>
+          ) : null}
 
           {/* Scope switcher row (search + project pills) */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -378,6 +458,28 @@ function ScopePill({
         </span>
       ) : null}
     </button>
+  );
+}
+
+function CollectiveMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="text-4xl font-semibold tracking-tight text-foreground">
+        {value}
+      </p>
+      <p className="text-xs leading-5 text-muted-foreground">{hint}</p>
+    </div>
   );
 }
 

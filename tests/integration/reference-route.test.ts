@@ -40,6 +40,8 @@ beforeAll(async () => {
       default_schema varchar default 'spec-driven',
       context text,
       config_yaml text,
+      enrollment_source varchar default 'local' not null,
+      remote_git_url text,
       created_at timestamp default now() not null,
       updated_at timestamp default now() not null
     );

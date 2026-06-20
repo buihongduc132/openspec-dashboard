@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn, type Health } from "@/lib/utils";
 import { SectionHeading } from "./flow-board";
 import type { ProjectView } from "./types";
@@ -34,12 +35,12 @@ export function ProjectMatrix({ projects, activeProjectId, onSelect }: Props) {
       <div className="rounded-[1.7rem] border border-border/60 bg-card/85 p-4 shadow-sm">
         <div className="space-y-3">
           {projects.map((project) => (
-            <button
+            <Link
               key={project.id}
-              type="button"
+              href={`/projects/${project.id}`}
               onClick={() => onSelect(project.id)}
               className={cn(
-                "w-full rounded-2xl border p-3 text-left transition hover:bg-muted/40",
+                "block w-full rounded-2xl border p-3 text-left transition hover:bg-muted/40 no-underline",
                 activeProjectId === project.id
                   ? "border-border bg-muted/40"
                   : "border-transparent"
@@ -56,14 +57,24 @@ export function ProjectMatrix({ projects, activeProjectId, onSelect }: Props) {
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{project.phase}</p>
                 </div>
-                <span
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-xs font-semibold",
-                    healthStyles[project.health]
-                  )}
-                >
-                  {project.health}
-                </span>
+                <div className="flex flex-col items-end gap-1.5">
+                  <span
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-xs font-semibold",
+                      healthStyles[project.health]
+                    )}
+                  >
+                    {project.health}
+                  </span>
+                  {project.pendingRemote ? (
+                    <span
+                      data-testid="pending-remote-badge"
+                      className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400"
+                    >
+                      remote — pending clone
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
@@ -83,7 +94,7 @@ export function ProjectMatrix({ projects, activeProjectId, onSelect }: Props) {
                   {project.risk === 1 ? "1 risk" : `${project.risk} risks`}
                 </p>
               </div>
-            </button>
+            </Link>
           ))}
 
           {projects.length === 0 ? (

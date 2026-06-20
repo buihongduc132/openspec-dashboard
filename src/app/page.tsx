@@ -8,6 +8,7 @@ import {
   tasks,
 } from "@/db/schema";
 import { count, eq, and, asc } from "drizzle-orm";
+import { countCrossProjectAggregates } from "@/db/aggregation";
 import { DashboardView } from "@/components/dashboard-view";
 import type { ProjectView } from "@/components/v4/types";
 import type { FlowItem, PlanRow } from "@/components/v4/types";
@@ -25,6 +26,18 @@ const FLOW_ITEM_CAP = 6; // per project, per column (matches FlowBoard single-pr
 
 export default async function DashboardPage() {
   const allProjects = await db.select().from(projects).orderBy(asc(projects.createdAt));
+
+  // ── Cross-project aggregation (collective overview) ───────────────────────
+  // Index-backed counts over the per-project tables, computed at read time
+  // (design D-MPCD-2). See src/db/aggregation.ts.
+  const collective = await countCrossProjectAggregates({
+    projectCount: allProjects.length,
+  });
+  const aggregate = {
+    projectCount: collective.projectCount,
+    totalInFlightChanges: collective.inFlightChanges,
+    totalOpenTasks: collective.openTasks,
+  };
 
   // ── Build per-project v4 views from real DB rows ──────────────────────────
   const views: ProjectView[] = await Promise.all(
@@ -162,6 +175,9 @@ export default async function DashboardPage() {
         risk: Number(riskCount),
         summary: p.description?.trim() || `OpenSpec project rooted at ${p.rootPath}.`,
         activeChanges: Number(activeChangeCount),
+        pendingRemote:
+          p.enrollmentSource === "remote-git" && p.projected === false,
+        remoteGitUrl: p.remoteGitUrl,
         flow: {
           findings,
           requirements: requirementsFlow,
@@ -173,7 +189,7 @@ export default async function DashboardPage() {
     })
   );
 
-  return <DashboardView projects={views} />;
+  return <DashboardView projects={views} aggregate={aggregate} />;
 }
 
 function truncate(value: string | null, max: number): string {
