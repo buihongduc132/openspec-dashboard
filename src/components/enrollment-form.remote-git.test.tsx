@@ -13,8 +13,8 @@ import {
   fireEvent,
 } from "@testing-library/react";
 
-// `EnrollmentForm` uses `useRouter`; mock it so the component renders cleanly
-// for the Remote-git tab tests (task 4.1).
+// Mock `next/navigation` (used by `EnrollmentForm`) for the Remote-git
+// tab tests (task 4.1).
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -53,10 +53,9 @@ describe("EnrollmentForm — Remote git tab (task 4.1)", () => {
     const remoteTab = screen.getByRole("tab", { name: /remote git/i });
     expect(remoteTab).toBeTruthy();
 
-    // Activating the tab brings its content into view. Radix Tabs triggers
-    // switch on mousedown / keydown (Enter/Space); focusing then pressing
-    // Enter is the most reliable activation in jsdom. After activation, the
-    // tab's content panel (with the URL input) becomes visible.
+    // Tab activation: Radix Tabs responds to mousedown / keydown events.
+    // Focus the tab then press Enter — the most reliable activation in jsdom.
+    // After activation, the content panel (with the URL input) becomes visible.
     remoteTab.focus();
     fireEvent.keyDown(remoteTab, { key: "Enter" });
 

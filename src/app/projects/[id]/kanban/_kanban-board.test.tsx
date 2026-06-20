@@ -44,7 +44,7 @@ vi.mock("@/lib/entity-reference/build", () => ({
 }));
 
 // Stub the clipboard so the client CopyReferenceButton never touches the real
-// async Clipboard API during render/click.
+// Clipboard API (async) — stubbed during render/click.
 vi.mock("@/lib/clipboard", () => ({
   copyText: vi.fn(async () => ({ ok: true, fallback: false })),
 }));

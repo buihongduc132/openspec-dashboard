@@ -60,9 +60,9 @@ export function EnrollmentForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path }),
       });
-      const data: Record<string, unknown> = await res
-        .json()
-        .catch(() => ({}) as Record<string, unknown>);
+      const data = await res.json().catch(() => ({})) as {
+        error?: string; message?: string; isOpenSpec?: boolean; path?: string;
+      };
       if (!res.ok) {
         setValidation({
           status: "error",
@@ -147,9 +147,9 @@ export function EnrollmentForm() {
           projected: true,
         }),
       });
-      const data: Record<string, unknown> = await res
-        .json()
-        .catch(() => ({}) as Record<string, unknown>);
+      const data = await res.json().catch(() => ({})) as {
+        error?: string; message?: string; id?: string;
+      };
       if (!res.ok) {
         setEnroll({
           status: "error",
