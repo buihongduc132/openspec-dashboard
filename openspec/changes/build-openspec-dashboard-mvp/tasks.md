@@ -67,23 +67,23 @@
 - [x] 5.1 Better-Auth integration (req 09.1–09.4, 09.7)
 - [x] 5.2 RBAC + permissions enforcement
 - [x] 5.3 Workspaces write flows (req 01.7)
-- [ ] 5.4 Context stores write flows (req 01.8)
-- [ ] 5.5 Initiatives coordination
+- [x] 5.4 Context stores write flows (req 01.8)
+- [x] 5.5 Initiatives coordination
 
 ## 6. Integration (Phase 3b)
 
-- [ ] 6.1 Teams + API tokens + leak detection + trust boundary (req 09.5, 09.10)
-- [ ] 6.2 Git integration — clone, sync, branch ops (req 08.4)
-- [ ] 6.3 Webhooks + agent API (req 08.5, 08.6)
-- [ ] 6.4 LLM verifier tier (req 06.1d)
-- [ ] 6.5 Visual schema editor (req 05.5 per D-SchemaEditor)
+- [x] 6.1 Teams + API tokens + leak detection + trust boundary (req 09.5, 09.10)
+- [x] 6.2 Git integration — clone, sync, branch ops (req 08.4)
+- [x] 6.3 Webhooks + agent API (req 08.5, 08.6)
+- [x] 6.4 LLM verifier tier (req 06.1d)
+- [x] 6.5 Visual schema editor (req 05.5 per D-SchemaEditor)
 
 ## 7. Analytics + polish + release (Phase 4)
 
-- [ ] 7.1 Analytics dashboards (req 07.2, 07.4, 07.6, 07.7)
+- [x] 7.1 Analytics dashboards (req 07.2, 07.4, 07.6, 07.7)
 - [x] 7.2 UI modernization pass (done ahead of schedule via v3 merge)
-- [ ] 7.3 Docs + demo + contribution guide
-- [ ] 7.4 Public repo publication gate wired (req 09.8, two-person + secret-scan)
+- [x] 7.3 Docs + demo + contribution guide
+- [x] 7.4 Public repo publication gate wired (req 09.8, two-person + secret-scan)
 
 ## 8. OpenSpec dogfooding (this change)
 

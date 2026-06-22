@@ -57,6 +57,19 @@ export async function PATCH(
   if (body.schema != null) {
     patch.schema = String(body.schema);
   }
+  // Task 5.5 — Initiatives coordination (req 01.8c): link/unlink a change to
+  // an initiative. `initiativeId` may be a UUID string or null (unlink). An
+  // empty string is normalized to null.
+  if (body.initiativeId !== undefined) {
+    const v = body.initiativeId;
+    if (v === null || v === "") {
+      patch.initiativeId = null;
+    } else if (typeof v === "string") {
+      patch.initiativeId = v;
+    }
+    // Non-string / non-null values are ignored (no-op) rather than 400ing,
+    // matching the tolerant metadata-edit contract of this endpoint.
+  }
 
   const [updated] = await db
     .update(changes)

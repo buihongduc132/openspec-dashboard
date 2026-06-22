@@ -22,6 +22,12 @@ export default defineConfig({
     environment: "node",
     include: ["tests/integration/**/*.test.{ts,tsx}"],
     globalSetup: ["./tests/integration/global-setup.ts"],
+    // Every integration file shares the single Postgres testcontainer DB and
+    // each wipes shared tables (projects, context_stores, workspaces, ...) in
+    // beforeEach. Running files in parallel therefore corrupts sibling files
+    // mid-test (FK violations on freshly-inserted rows). Serialize files so
+    // the shared-DB suite is deterministic.
+    fileParallelism: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],

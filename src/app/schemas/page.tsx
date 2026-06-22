@@ -69,15 +69,20 @@ export default async function SchemasPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <Badge variant="secondary" className="text-[10px] capitalize">{s.source}</Badge>
+              {/*
+               * Task 6.5 — Visual schema editor (req 05.5 / D-SchemaEditor).
+               * Two-pane editor route hosts the live two-way-binding UI.
+               */}
+              <div>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/schemas/${s.id}/edit`}>Edit visually</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      <div className="mt-6 rounded-lg border border-dashed border-border/80 bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Note:</span> The visual schema editor is scheduled for Phase 3. For now, schemas are predefined templates.
       </div>
     </div>
   );
