@@ -11,8 +11,8 @@
 - [x] 1.4 `.gitignore` + `.env.example` committed; `.openspec-dashboard/` fallback pre-ignored
 - [x] 1.5 Public repo created + pushed (https://github.com/buihongduc132/openspec-dashboard)
 - [x] 1.6 Health endpoint (`GET /api/health`)
-- [ ] 1.7 OpenSpec parser port — documented upstream rules + gap registry (req 08 §8.9)
-- [ ] 1.8 Filesystem projection (Markdown ↔ in-memory) + atomic writes (req 01 §1.4)
+- [x] 1.7 OpenSpec parser port — documented upstream rules + gap registry (req 08 §8.9)
+- [x] 1.8 Filesystem projection (Markdown ↔ in-memory) + atomic writes (req 01 §1.4)
 - [ ] 1.9 Per-section ETag implementation (INV-7, Section Granularity Table)
 - [ ] 1.10 Audit log hash-chain + chain verifier (NFR-10, D-ArchiveSeq)
 - [ ] 1.11 OpenAPI skeleton + read endpoints (req 08 §8.1)
