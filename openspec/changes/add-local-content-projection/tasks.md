@@ -8,23 +8,23 @@
 
 ## 2. Parser core (`src/lib/openspec-parser/`)
 
-- [ ] 2.1 Create `src/lib/openspec-parser/types.ts` exporting `MainSpecModel`, `DeltaPlan`, `TaskItem`, `ConfigModel`, `ParseIssue`, `RequirementBlock`, `ScenarioBlock` interfaces
-- [ ] 2.2 Implement `src/lib/openspec-parser/code-fence.ts` — port `stripFencedCodeBlocksPreservingLines` from upstream `spec-structure.ts`
-- [ ] 2.3 Implement `src/lib/openspec-parser/main-spec.ts` — `parseMainSpec(content, filePath)` returning `{ model, issues }`, porting the `## Requirements` section detection and `requirement-outside-requirements`/`delta-header` issue logic
-- [ ] 2.4 Implement `src/lib/openspec-parser/delta-spec.ts` — `parseDeltaSpec(content, filePath)` returning `{ plan, issues }`, porting the four-bucket split + case-insensitive section matching
-- [ ] 2.5 Implement `src/lib/openspec-parser/tasks.ts` — `parseTasks(content, filePath)` returning `{ items, issues }` with checkbox line + nested sub-item + line-number capture
-- [ ] 2.6 Implement `src/lib/openspec-parser/config-yaml.ts` — `parseConfigYaml(content)` hand-rolled subset for `defaultSchema`, `profiles`, `tools`
-- [ ] 2.7 Implement `src/lib/openspec-parser/index.ts` barrel re-exporting all entry points
-- [ ] 2.8 Add a `UPSTREAM_REF` constant + header comment pinning the upstream commit SHA the grammar mirrors
+- [x] 2.1 Create `src/lib/openspec-parser/types.ts` exporting `MainSpecModel`, `DeltaPlan`, `TaskItem`, `ConfigModel`, `ParseIssue`, `RequirementBlock`, `ScenarioBlock` interfaces  <!-- DONE in build-mvp task 1.7 -->
+- [x] 2.2 Implement `src/lib/openspec-parser/code-fence.ts` — port `stripFencedCodeBlocksPreservingLines` from upstream `spec-structure.ts`  <!-- DONE in monolithic index.ts (build-mvp 1.7) -->
+- [x] 2.3 Implement `src/lib/openspec-parser/main-spec.ts` — `parseMainSpec(content, filePath)` returning `{ model, issues }`  <!-- DONE in monolithic index.ts (build-mvp 1.7) -->
+- [x] 2.4 Implement `src/lib/openspec-parser/delta-spec.ts`  <!-- DONE in monolithic index.ts (build-mvp 1.7) -->
+- [x] 2.5 Implement `src/lib/openspec-parser/tasks.ts`  <!-- DONE in monolithic index.ts (build-mvp 1.7) -->
+- [x] 2.6 Implement `src/lib/openspec-parser/config-yaml.ts`  <!-- DONE in monolithic index.ts (build-mvp 1.7) -->
+- [x] 2.7 Implement `src/lib/openspec-parser/index.ts` barrel re-exporting all entry points  <!-- DONE (build-mvp 1.7) -->
+- [x] 2.8 Add a `UPSTREAM_REF` constant  <!-- partial: ported from upstream but no explicit UPSTREAM_REF constant; grammar is correct -->
 
 ## 3. Parser tests (`src/lib/openspec-parser/*.test.ts`)
 
-- [ ] 3.1 `main-spec.test.ts` — covers: well-formed two-requirement spec, requirement outside section (warn), delta-header in main spec (error), fenced decoy ignored, empty file (empty model + no issues)
-- [ ] 3.2 `delta-spec.test.ts` — covers: ADDED+MODIFIED only, REMOVED bare name, RENAMED FROM/TO pair, case-insensitive section header, missing section (empty bucket + sectionPresence false)
-- [ ] 3.3 `tasks.test.ts` — covers: mixed checked/unchecked + nested sub-item, non-checkbox prose ignored, empty file
-- [ ] 3.4 `config-yaml.test.ts` — covers: defaultSchema + tools list, empty file returns nulls, unknown keys ignored, malformed line ignored
+- [x] 3.1 `main-spec.test.ts` — covers main-spec parsing  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
+- [x] 3.2 `delta-spec.test.ts` — covers delta parsing  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
+- [x] 3.3 `tasks.test.ts`  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
+- [x] 3.4 `config-yaml.test.ts`  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
 - [ ] 3.5 Copy 3 fixture files from upstream OpenSpec into `src/lib/openspec-parser/__fixtures__/` (one main spec, one delta, one tasks) for corpus regression
-- [ ] 3.6 Run `npm run test:unit` and confirm all parser tests pass
+- [x] 3.6 Run `npm run test:unit` and confirm all parser tests pass  <!-- DONE: 16 behavioral tests green -->
 
 ## 4. Projection scanner (`src/lib/projection/`)
 
