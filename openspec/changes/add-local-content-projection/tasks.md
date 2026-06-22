@@ -1,10 +1,10 @@
 ## 1. Schema & dependencies
 
-- [ ] 1.1 Add `chokidar` to `package.json` dependencies and run `npm install`
-- [ ] 1.2 Add `contentHash` (string, nullable) column to content tables: `specs`, `requirements`, `scenarios`, `changes`, `artifacts`, `deltaSpecs`, `tasks` in `src/db/schema.ts`
-- [ ] 1.3 Add `lastProjectedAt` (timestamp, nullable) and `projectionError` (text, nullable) columns to the `projects` table in `src/db/schema.ts`
-- [ ] 1.4 Run `drizzle-kit push` locally against the dev DB (port 15437) and confirm columns exist via `psql \d`
-- [ ] 1.5 Update `src/db/seed.ts` if needed so seeded rows carry `contentHash=null` (treated as always-reparse) without breaking existing seed assertions
+- [x] 1.1 Add `chokidar` to `package.json` dependencies and run `npm install`
+- [x] 1.2 Add `contentHash` (string, nullable) column to content tables: `specs`, `requirements`, `scenarios`, `changes`, `artifacts`, `deltaSpecs`, `tasks` in `src/db/schema.ts`
+- [x] 1.3 Add `lastProjectedAt` (timestamp, nullable) and `projectionError` (text, nullable) columns to the `projects` table in `src/db/schema.ts`
+- [x] 1.4 Run `drizzle-kit push` locally against the dev DB (port 15437) and confirm columns exist via `psql \d`
+- [x] 1.5 Update `src/db/seed.ts` if needed so seeded rows carry `contentHash=null` (treated as always-reparse) without breaking existing seed assertions
 
 ## 2. Parser core (`src/lib/openspec-parser/`)
 
@@ -23,23 +23,23 @@
 - [x] 3.2 `delta-spec.test.ts` — covers delta parsing  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
 - [x] 3.3 `tasks.test.ts`  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
 - [x] 3.4 `config-yaml.test.ts`  <!-- DONE in openspec-parser.test.ts (build-mvp 1.7) -->
-- [ ] 3.5 Copy 3 fixture files from upstream OpenSpec into `src/lib/openspec-parser/__fixtures__/` (one main spec, one delta, one tasks) for corpus regression
+- [x] 3.5 Copy 3 fixture files from upstream OpenSpec into `src/lib/openspec-parser/__fixtures__/` (one main spec, one delta, one tasks) for corpus regression
 - [x] 3.6 Run `npm run test:unit` and confirm all parser tests pass  <!-- DONE: 16 behavioral tests green -->
 
 ## 4. Projection scanner (`src/lib/projection/`)
 
-- [ ] 4.1 Implement `src/lib/projection/hash.ts` — `contentHash(bytes)` returning SHA-256 hex; `canonicalize(content)` normalizing `\r\n`→`\n`
-- [ ] 4.2 Implement `src/lib/projection/scanner.ts` — `scanProjectTree(rootPath)` returning a typed tree: `specs[]`, `changes[]`, `archivedChanges[]`, `tasksByChange`, `configYamlPath`; skips non-existent root with explicit reason
-- [ ] 4.3 Implement `src/lib/projection/parse-runner.ts` — orchestrates parser calls per file, collecting `{ model, issues, hash }` per file
-- [ ] 4.4 Implement `src/lib/projection/upsert.ts` — per (project, kind) transactional upsert with content-hash skip + delete-missing-files tombstone pass; maps parser models → existing schema rows
+- [x] 4.1 Implement `src/lib/projection/hash.ts` — `contentHash(bytes)` returning SHA-256 hex; `canonicalize(content)` normalizing `\r\n`→`\n`
+- [x] 4.2 Implement `src/lib/projection/scanner.ts` — `scanProjectTree(rootPath)` returning a typed tree: `specs[]`, `changes[]`, `archivedChanges[]`, `tasksByChange`, `configYamlPath`; skips non-existent root with explicit reason
+- [x] 4.3 Implement `src/lib/projection/parse-runner.ts` — orchestrates parser calls per file, collecting `{ model, issues, hash }` per file
+- [x] 4.4 Implement `src/lib/projection/upsert.ts` — per (project, kind) transactional upsert with content-hash skip + delete-missing-files tombstone pass; maps parser models → existing schema rows
 - [ ] 4.5 Implement `src/lib/projection/project.ts` — `projectProject(projectId, db)` tying scan → parse → upsert together, setting `projects.projected=true`, `lastProjectedAt=now`, accumulating `parseErrors[]` into `projects.projectionError`
 - [ ] 4.6 Implement `src/lib/projection/queue.ts` — in-memory FIFO with per-projectId coalescing; `enqueue(projectId)` returns `{ jobId, status }`; single worker per project serializes writes
 
 ## 5. Projection tests
 
-- [ ] 5.1 `hash.test.ts` — canonicalize + hash stability
-- [ ] 5.2 `scanner.test.ts` — uses a tmpdir fixture tree (one capability + one change + one archived change); asserts scan output shape; asserts non-existent root returns skip reason
-- [ ] 5.3 `upsert.test.ts` — against a test DB (truncate, project once, assert rows; project again unchanged, assert no SQL issued via query spy; edit one file, assert only that row changed; delete a capability dir, assert rows gone)
+- [x] 5.1 `hash.test.ts` — canonicalize + hash stability
+- [x] 5.2 `scanner.test.ts` — uses a tmpdir fixture tree (one capability + one change + one archived change); asserts scan output shape; asserts non-existent root returns skip reason
+- [x] 5.3 `upsert.test.ts` — against a test DB (truncate, project once, assert rows; project again unchanged, assert no SQL issued via query spy; edit one file, assert only that row changed; delete a capability dir, assert rows gone)
 - [ ] 5.4 `project.test.ts` — end-to-end against tmpdir + test DB; asserts `projected=true`, `lastProjectedAt` set, `parseErrors` empty on clean tree
 - [ ] 5.5 `queue.test.ts` — concurrent enqueue coalesces to one job; second request for same project returns same jobId while running
 - [ ] 5.6 Run `npm run test:unit` and `npm run test:integration` and confirm projection tests pass

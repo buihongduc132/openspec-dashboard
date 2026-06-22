@@ -28,6 +28,11 @@ export const projects = pgTable("projects", {
   // dashboard. Local enrollments set this true; stubbed remote-git enrollments
   // leave it false until clone+projection lands with git integration (req 08.4).
   projected: boolean("projected").default(false).notNull(),
+  // Projection lifecycle (content-projection spec, D2):
+  // advanced on every successful run; null = never projected.
+  lastProjectedAt: timestamp("last_projected_at"),
+  // Human-readable reason a projection run failed (e.g. missing rootPath).
+  projectionError: text("projection_error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -53,6 +58,9 @@ export const specs = pgTable("specs", {
     .notNull()
     .references(() => specDomains.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  // Incremental projection (D2): SHA-256 of canonicalized source bytes.
+  // null on legacy rows → always re-parse once; null is not a hash.
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -68,6 +76,7 @@ export const requirements = pgTable("requirements", {
   body: text("body").notNull(),
   strength: varchar("strength").default("SHALL"),
   orderIndex: integer("order_index").default(0),
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -84,6 +93,7 @@ export const scenarios = pgTable("scenarios", {
   when: text("when").notNull(),
   then: text("then").notNull(),
   orderIndex: integer("order_index").default(0),
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -100,6 +110,7 @@ export const changes = pgTable("changes", {
   status: varchar("status").default("proposed").notNull(),
   description: text("description"),
   initiativeId: uuid("initiative_id"),
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -115,6 +126,7 @@ export const artifacts = pgTable("artifacts", {
   content: text("content").notNull(),
   status: varchar("status").default("draft").notNull(),
   outputPath: varchar("output_path").notNull(),
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -131,6 +143,7 @@ export const deltaSpecs = pgTable("delta_specs", {
     .references(() => specDomains.id, { onDelete: "cascade" }),
   deltaType: varchar("delta_type").notNull(),
   content: text("content").notNull(),
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -156,6 +169,7 @@ export const tasks = pgTable("tasks", {
   dueDate: timestamp("due_date"),
   orderIndex: integer("order_index").default(0),
   checked: boolean("checked").default(false),
+  contentHash: varchar("content_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

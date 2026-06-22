@@ -15,6 +15,13 @@
       "when": 1782154775725,
       "tag": "0001_add_initiative_status",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782336000000,
+      "tag": "0002_add_projection_columns",
+      "breakpoints": true
     }
   ]
 }
