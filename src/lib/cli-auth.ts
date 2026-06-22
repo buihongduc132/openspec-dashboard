@@ -130,7 +130,7 @@ export async function checkCliAuth(
         status: "ok",
         authenticated: true,
         host: hostList[0] as string,
-        ...(typeof entry.user === "string" ? { user: entry.user } : {}),
+        ...(typeof entry?.user === "string" ? { user: entry.user } : {}),
       };
     }
     if (singleHost) {
@@ -138,7 +138,7 @@ export async function checkCliAuth(
         status: "ok",
         authenticated: true,
         host: singleHost,
-        ...(typeof entry.user === "string" ? { user: entry.user } : {}),
+        ...(typeof entry?.user === "string" ? { user: entry.user } : {}),
       };
     }
     // Authenticated but no host key — trust the successful exit.
@@ -280,7 +280,7 @@ async function collectChild(child: ChildProcess): Promise<ChildOutcome> {
 /** Parse JSON, accepting either a single object or an array (take [0]). */
 function safeParseFirstObject(
   raw: string,
-): { host?: string; user?: string } | null {
+): { host?: string; hosts?: unknown; user?: string } | null {
   const text = raw.trim();
   if (!text) return null;
   try {

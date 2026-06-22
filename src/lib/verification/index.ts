@@ -32,4 +32,14 @@ export type {
   DashboardFinding,
 } from "./dashboard";
 
+export { verifyChangeWithLLMTier } from "./llm";
+export type {
+  LLMVerifierBackend,
+  LLMVerifierConfig,
+  LLMRawResult,
+  LLMUsage,
+  CombinedVerifierReport,
+  VerifyWithLLMOptions,
+} from "./llm";
+
 export type { TrendPoint } from "./types";
