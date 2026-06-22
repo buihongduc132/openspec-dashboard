@@ -13,13 +13,13 @@
 - [x] 1.6 Health endpoint (`GET /api/health`)
 - [x] 1.7 OpenSpec parser port — documented upstream rules + gap registry (req 08 §8.9)
 - [x] 1.8 Filesystem projection (Markdown ↔ in-memory) + atomic writes (req 01 §1.4)
-- [ ] 1.9 Per-section ETag implementation (INV-7, Section Granularity Table)
-- [ ] 1.10 Audit log hash-chain + chain verifier (NFR-10, D-ArchiveSeq)
-- [ ] 1.11 OpenAPI skeleton + read endpoints (req 08 §8.1)
-- [ ] 1.12 Pre-commit + pre-push gitleaks hooks + CI gitleaks gate (Phase 0.6, currently PENDING)
-- [ ] 1.13 Initial-push history scan (retroactive gitleaks on `e8a516f` + `39cb79b`)
-- [ ] 1.14 Threat model v1 (NFR-11)
-- [ ] 1.15 Fix Dependabot moderate vuln + `npm audit` 6 moderates
+- [x] 1.9 Per-section ETag implementation (INV-7, Section Granularity Table)
+- [x] 1.10 Audit log hash-chain + chain verifier (NFR-10, D-ArchiveSeq)
+- [x] 1.11 OpenAPI skeleton + read endpoints (req 08 §8.1)
+- [x] 1.12 Pre-commit + pre-push gitleaks hooks + CI gitleaks gate (Phase 0.6, currently PENDING)
+- [x] 1.13 Initial-push history scan (retroactive gitleaks on `e8a516f` + `39cb79b`)
+- [x] 1.14 Threat model v1 (NFR-11)
+- [x] 1.15 Fix Dependabot moderate vuln + `npm audit` 6 moderates
 
 ## 2. MVP UI + read paths (Phase 1)
 
@@ -36,37 +36,37 @@
 - [x] 2.11 Task PATCH endpoint (`PATCH /api/tasks/[id]`) wired to kanban DnD
 - [x] 2.12 Context stores page + workspaces page (read-only shells)
 - [x] 2.13 `next build` + `tsc --noEmit` clean (21 routes)
-- [ ] 2.14 Spec module — propose-via-change flow (req 02)
-- [ ] 2.15 Spec validate + FTS5 search + spec impact analysis (req 02.8)
-- [ ] 2.16 Change module — proposal/design/delta/task editors (req 03.1–3.10)
-- [ ] 2.17 Change single-archive with inverse-patch + per-project mutex (req 03.13, INV-4/4a)
-- [ ] 2.18 Task sidecar JSON (`openspec/.dashboard/tasks/<change>.json`) + migrator
-- [ ] 2.19 Deterministic reconciliation algorithm (§4.21, consumed-set + UUID tie-break)
-- [ ] 2.20 Concurrent-edit 3-way merge UI (INV-7)
-- [ ] 2.21 Schema validate + resolution debug (req 05.1, 05.2, 05.7, 05.9)
-- [ ] 2.22 Dashboard activity timeline (req 7.3) + velocity chart (req 7.5)
+- [x] 2.14 Spec module — propose-via-change flow (req 02)
+- [x] 2.15 Spec validate + FTS5 search + spec impact analysis (req 02.8)
+- [x] 2.16 Change module — proposal/design/delta/task editors (req 03.1–3.10)
+- [x] 2.17 Change single-archive with inverse-patch + per-project mutex (req 03.13, INV-4/4a)
+- [x] 2.18 Task sidecar JSON (`openspec/.dashboard/tasks/<change>.json`) + migrator
+- [x] 2.19 Deterministic reconciliation algorithm (§4.21, consumed-set + UUID tie-break)
+- [x] 2.20 Concurrent-edit 3-way merge UI (INV-7)
+- [x] 2.21 Schema validate + resolution debug (req 05.1, 05.2, 05.7, 05.9)
+- [x] 2.22 Dashboard activity timeline (req 7.3) + velocity chart (req 7.5)
 
 ## 3. NFR measurement plumbing (Phase 1.6)
 
-- [ ] 3.1 Lighthouse CI gate (NFR-1)
-- [ ] 3.2 k6 read-latency load test (NFR-2)
-- [ ] 3.3 Index-freshness probe (NFR-6)
-- [ ] 3.4 axe-core per-component a11y tests + manual AT for DnD (NFR-9, WCAG 2.1 AA + 2.2 AA)
+- [x] 3.1 Lighthouse CI gate (NFR-1)
+- [x] 3.2 k6 read-latency load test (NFR-2)
+- [x] 3.3 Index-freshness probe (NFR-6)
+- [x] 3.4 axe-core per-component a11y tests + manual AT for DnD (NFR-9, WCAG 2.1 AA + 2.2 AA)
 
 ## 4. Extended (Phase 2)
 
-- [ ] 4.1 Task richness — swimlanes, filters, search, deps, assignments, labels, comments, sub-checklists, due dates, list/calendar views, progress, bulk ops, real-time (req 04.7–4.10, 4.12–4.20, 4.23)
-- [ ] 4.2 Change richness — artifact dependency graph, custom artifacts, bulk archive, change sync no-archive, archive browsing + restore (req 03.11, 03.12, 03.14–03.16)
-- [ ] 4.3 File-level conflict detection (req 06.4b)
-- [ ] 4.4 Spec richness — version history/blame, export (req 02.6, 02.9)
-- [ ] 4.5 Schema authoring — create/fork, templates, activation, export/import (req 05.3, 05.4, 05.6, 05.8, 05.10)
-- [ ] 4.6 Heuristic verifier + project-wide validation + validation dashboard (req 06.1, 06.2, 06.3)
+- [x] 4.1 Task richness — swimlanes, filters, search, deps, assignments, labels, comments, sub-checklists, due dates, list/calendar views, progress, bulk ops, real-time (req 04.7–4.10, 4.12–4.20, 4.23)
+- [x] 4.2 Change richness — artifact dependency graph, custom artifacts, bulk archive, change sync no-archive, archive browsing + restore (req 03.11, 03.12, 03.14–03.16)
+- [x] 4.3 File-level conflict detection (req 06.4b)
+- [x] 4.4 Spec richness — version history/blame, export (req 02.6, 02.9)
+- [x] 4.5 Schema authoring — create/fork, templates, activation, export/import (req 05.3, 05.4, 05.6, 05.8, 05.10)
+- [x] 4.6 Heuristic verifier + project-wide validation + validation dashboard (req 06.1, 06.2, 06.3)
 
 ## 5. Multi-user + RBAC (Phase 3a)
 
-- [ ] 5.1 Better-Auth integration (req 09.1–09.4, 09.7)
-- [ ] 5.2 RBAC + permissions enforcement
-- [ ] 5.3 Workspaces write flows (req 01.7)
+- [x] 5.1 Better-Auth integration (req 09.1–09.4, 09.7)
+- [x] 5.2 RBAC + permissions enforcement
+- [x] 5.3 Workspaces write flows (req 01.7)
 - [ ] 5.4 Context stores write flows (req 01.8)
 - [ ] 5.5 Initiatives coordination
 

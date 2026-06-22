@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Pre-push hook — Task 1.12 (Phase 0.6 secret hygiene).
+#
+# Runs a full-repo `gitleaks detect` scan (history + working tree) before a
+# push, as the second line of defence after pre-commit (which only sees staged
+# changes). Install with `scripts/install-hooks.sh`
+# (or `git config core.hooksPath .githooks`).
+#
+# If gitleaks is not on PATH we warn and exit 0 so developers without it
+# installed are not blocked locally — the CI gitleaks gate is the hard block.
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "[pre-push] gitleaks not found on PATH — skipping secret scan." >&2
+  echo "[pre-push] Install: https://github.com/gitleaks/gitleaks" >&2
+  echo "[pre-push] NOTE: CI runs gitleaks regardless; leaks WILL block the PR." >&2
+  exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+CONFIG="$ROOT/.gitleaks.toml"
+
+echo "[pre-push] scanning full repository history with gitleaks..."
+# `detect` scans the commit history of the current branch; `--redact` keeps
+# found secrets out of the terminal output.
+if ! gitleaks detect --source="$ROOT" --redact --config="$CONFIG" --verbose; then
+  echo "[pre-push] gitleaks found a potential secret in history — push ABORTED." >&2
+  echo "[pre-push] If a real secret leaked, rotate it immediately, do NOT just bypass." >&2
+  echo "[pre-push] To bypass locally (DANGEROUS): git push --no-verify" >&2
+  exit 1
+fi
+echo "[pre-push] gitleaks: no secrets found."

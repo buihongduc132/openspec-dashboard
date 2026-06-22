@@ -1,0 +1,30 @@
+{
+  "$schema": "index-freshness-config",
+  "__comment__": [
+    "Index-freshness probe thresholds for NFR-6 / INV-8.",
+    "Source: flow/requirements/README.md — NFR-6: search index refreshes",
+    "within 2s of a write; INV-8: any canonical artifact OR dashboard entity",
+    "is indexed for full-text search within its project scope within 2s of write.",
+    "",
+    "The freshnessMs value below is the SINGLE source of truth: the probe",
+    "script (tests/probes/index-freshness.probe.js) reads this file and uses",
+    "it as the polling deadline, so the unit test and the live CI run can",
+    "never drift. Override the target host/project/write-target via env",
+    "(FRESHNESS_BASE_URL, FRESHNESS_PROJECT_ID, FRESHNESS_WRITE_TARGET) in CI."
+  ],
+  "nfr6": {
+    "freshnessMs": 2000
+  },
+  "thresholds": {
+    "freshnessMs": 2000
+  },
+  "polling": {
+    "intervalMs": 100,
+    "deadlineMs": 2000
+  },
+  "targets": {
+    "writeEndpoint": "/api/search/index-freshness-probe",
+    "searchEndpoint": "/api/search",
+    "searchQueryParam": "q"
+  }
+}

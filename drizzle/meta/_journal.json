@@ -8,6 +8,13 @@
       "when": 1781916060266,
       "tag": "0000_add_enrollment_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782154775725,
+      "tag": "0001_add_initiative_status",
+      "breakpoints": true
     }
   ]
 }

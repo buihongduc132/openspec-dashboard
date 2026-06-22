@@ -1,0 +1,42 @@
+{
+  "$schema": "lighthouserc",
+  "__comment__": [
+    "Lighthouse CI gate for NFR-1 (First-Contentful Paint).",
+    "Targets (flow/requirements/README.md): cold FCP <= 1500ms, warm FCP <= 500ms.",
+    "Lighthouse measures a single FCP value per page-load; the 'cold' budget",
+    "below is the hard CI fail-line. The 'warm' budget (500ms) is enforced by",
+    "the dedicated warm-run job in .github/workflows/ci.yml (a second LHCI",
+    "collect with numberOfRuns against a warmed server), which overrides the",
+    "assertion maxNumericValue to 500ms via LHCI_ASSERT_FCP_WARM."
+  ],
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop"
+      },
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/projects"
+      ],
+      "startServerCommand": "npm run start",
+      "startServerReadyPattern": "Ready in|started server on|Local:"
+    },
+    "assert": {
+      "assertions": {
+        "first-contentful-paint": [
+          "error",
+          { "maxNumericValue": 1500, "aggregationMethod": "median" }
+        ],
+        "categories:performance": ["warn", { "minScore": 0.9 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  },
+  "nfr1": {
+    "coldFcpMs": 1500,
+    "warmFcpMs": 500
+  }
+}

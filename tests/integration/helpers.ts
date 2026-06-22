@@ -35,3 +35,53 @@ export async function callPost(
   });
   return handler(req);
 }
+
+/**
+ * Invoke a POST route handler in-process with a JSON body and route params
+ * (for nested resource handlers like `/api/.../[id]/sub`).
+ */
+export async function callPostWithParams<P extends Record<string, string>>(
+  handler: (req: NextRequest, ctx: { params: Promise<P> }) => Promise<Response> | Response,
+  pathname: string,
+  params: P,
+  body: unknown,
+): Promise<Response> {
+  const url = `http://localhost:3000${pathname}`;
+  const req = new NextRequest(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handler(req, { params: Promise.resolve(params) });
+}
+
+/**
+ * Invoke a PATCH route handler in-process with a JSON body and route params.
+ */
+export async function callPatch<P extends Record<string, string>>(
+  handler: (req: NextRequest, ctx: { params: Promise<P> }) => Promise<Response> | Response,
+  pathname: string,
+  params: P,
+  body: unknown,
+): Promise<Response> {
+  const url = `http://localhost:3000${pathname}`;
+  const req = new NextRequest(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handler(req, { params: Promise.resolve(params) });
+}
+
+/**
+ * Invoke a DELETE route handler in-process with route params.
+ */
+export async function callDelete<P extends Record<string, string>>(
+  handler: (req: NextRequest, ctx: { params: Promise<P> }) => Promise<Response> | Response,
+  pathname: string,
+  params: P,
+): Promise<Response> {
+  const url = `http://localhost:3000${pathname}`;
+  const req = new NextRequest(url, { method: "DELETE" });
+  return handler(req, { params: Promise.resolve(params) });
+}

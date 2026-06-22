@@ -1,0 +1,26 @@
+# Gitleaks configuration — Task 1.12 (Phase 0.6 secret hygiene).
+#
+# We extend gitleaks' built-in ruleset (`path = "gitleaks.toml"` is the magic
+# name gitleaks resolves to its bundled defaults) so the dashboard inherits
+# every upstream rule. Local additions go in `[[rules]]` below; suppressions
+# for committed example/template files go in `[allowlist]`.
+#
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+title = "openspec-dashboard gitleaks config"
+
+[extend]
+# Inherit gitleaks' default rules. `path = "gitleaks.toml"` (the literal name)
+# tells gitleaks to extend its bundled default config instead of any file.
+useDefault = true
+
+[allowlist]
+description = "Allowlist for committed example/template files and test fixtures."
+paths = [
+  # Example env template — deliberately ships placeholder credentials.
+  ".env.example",
+  # Lockfiles can contain hashed/sha material that trips generic token rules.
+  "package-lock.json",
+  # This very test file plants a fake AWS key on purpose.
+  "src/lib/secret-hygiene/gitleaks-config.test.ts",
+]

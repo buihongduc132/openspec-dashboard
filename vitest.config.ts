@@ -17,6 +17,11 @@ export default defineConfig({
   test: {
     name: "unit",
     environment: "jsdom",
-    include: ["src/**/*.test.{ts,tsx}", "tests/unit/**/*.test.{ts,tsx}"],
+    include: [
+      "src/**/*.test.{ts,tsx}",
+      "tests/unit/**/*.test.{ts,tsx}",
+      // Per-component axe-core a11y tests (NFR-9, task 3.4).
+      "tests/a11y/**/*.test.{ts,tsx}",
+    ],
   },
 });

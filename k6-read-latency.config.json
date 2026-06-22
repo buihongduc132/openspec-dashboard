@@ -1,0 +1,31 @@
+{
+  "$schema": "k6-read-latency-config",
+  "__comment__": [
+    "k6 read-latency load test thresholds for NFR-2 (single-project reads).",
+    "Source: flow/requirements/README.md — NFR-2: API p50/p99 (single-project",
+    "read) < 100ms / < 500ms. The CI job SHALL fail when p50 >= 100ms or",
+    "p99 >= 500ms (strict '<' so a value equal to the line fails, matching",
+    "the spec wording 'SHALL fail when p50 >= 100ms or p99 >= 500ms').",
+    "",
+    "The thresholds object below is the SINGLE source of truth: the k6 script",
+    "(tests/load/read-latency.k6.js) reads this file and builds its k6",
+    "`options.thresholds` from it, so the unit test and the live run can never",
+    "drift. Override the target host/project via env (K6_BASE_URL,",
+    "K6_PROJECT_ID) in CI."
+  ],
+  "nfr2": {
+    "p50Ms": 100,
+    "p99Ms": 500
+  },
+  "thresholds": {
+    "p50Ms": 100,
+    "p99Ms": 500
+  },
+  "targets": [
+    { "path": "/api/projects/${PROJECT_ID}", "method": "GET" }
+  ],
+  "load": {
+    "vus": 20,
+    "duration": "30s"
+  }
+}

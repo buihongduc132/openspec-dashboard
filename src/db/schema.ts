@@ -245,6 +245,10 @@ export const initiatives = pgTable("initiatives", {
     .references(() => contextStores.id, { onDelete: "cascade" }),
   title: varchar("title").notNull(),
   summary: text("summary"),
+  // Initiative lifecycle (req 01.8b): proposed → active → completed → abandoned.
+  // `abandoned` is reachable only from `active`, so a fresh proposal cannot
+  // be abandoned without first being activated (validated at the API layer).
+  status: varchar("status").default("proposed").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -276,4 +280,9 @@ export const auditLogs = pgTable("audit_logs", {
   details: text("details"),
   author: varchar("author"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Task 1.10 — Audit hash-chain (NFR-10, D-ArchiveSeq):
+  // hash[n] = SHA256(prevHash ‖ canonical(entry) ‖ archiveSeq).
+  archiveSeq: integer("archive_seq"),
+  prevHash: varchar("prev_hash"),
+  hash: varchar("hash"),
 });

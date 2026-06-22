@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dequelabs/axe-core/develop/doc/schemas/run-options.json",
+  "name": "openspec-dashboard-axe-a11y",
+  "comment": "Single source of truth for the NFR-9 axe-core ruleset. Pinned to WCAG 2.1 AA + WCAG 2.2 AA. The per-component a11y tests under tests/a11y load this file (tests/a11y/axe.ts) so the ruleset cannot drift from the spec. Target: WCAG 2.1 AA (all SC) + WCAG 2.2 AA (all 5 new SC: 2.4.11 Focus Not Obscured Min, 2.5.7 Dragging Movements, 2.5.8 Target Size Minimum, 3.3.7 Redundant Entry, 3.3.8 Accessible Auth Min).",
+  "wcagLevels": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+  "wcag21AA": true,
+  "wcag22AA": true,
+  "wcag22SuccessCriteria": [
+    "2.4.11 Focus Not Obscured Min",
+    "2.5.7 Dragging Movements",
+    "2.5.8 Target Size Minimum",
+    "3.3.7 Redundant Entry",
+    "3.3.8 Accessible Auth Min"
+  ],
+  "runOptions": {
+    "runOnly": {
+      "type": "tag",
+      "values": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
+    },
+    "resultTypes": ["violations", "incomplete", "passes"]
+  },
+  "scenarioPins": {
+    "axeViolationFailsCI": "Any axe violation returned against a rendered component fails the unit-test job and identifies the component + SC violated.",
+    "dndManualATInPhase": "Kanban DnD manual AT (NVDA/VoiceOver/JAWS) + keyboard-interaction scripts are recorded in docs/accessibility/dnd-manual-at.md in this phase, not deferred."
+  }
+}

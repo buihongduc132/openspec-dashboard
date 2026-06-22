@@ -140,12 +140,14 @@ export default function KanbanBoard({
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <input
           type="text"
+          aria-label="Search tasks"
           placeholder="Search tasks..."
           value={filter.search}
           onChange={(e) => setFilter({ ...filter, search: e.target.value })}
           className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
         />
         <select
+          aria-label="Filter by change"
           value={filter.change}
           onChange={(e) => setFilter({ ...filter, change: e.target.value })}
           className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
@@ -156,6 +158,7 @@ export default function KanbanBoard({
           ))}
         </select>
         <select
+          aria-label="Filter by assignee"
           value={filter.assignee ?? ""}
           onChange={(e) => setFilter({ ...filter, assignee: e.target.value })}
           className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"

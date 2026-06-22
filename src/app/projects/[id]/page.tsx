@@ -22,6 +22,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import {
+  getProjectActivityTimeline,
+  getProjectVelocityCompletions,
+} from "@/db/analytics";
+import { ActivityTimeline } from "@/components/activity-timeline";
+import { VelocityChart } from "@/components/velocity-chart";
 import { CopyReferenceButton } from "@/components/copy-reference-button";
 import { buildEntityReference } from "@/lib/entity-reference/build";
 import type { ReferenceContext } from "@/lib/entity-reference/types";
@@ -96,6 +102,20 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .select()
     .from(specDomains)
     .where(eq(specDomains.projectId, id));
+
+  // Task 2.22 — activity timeline (req 7.3) + task velocity (req 7.5), both
+  // sourced from the per-project audit log.
+  const activityRows = await getProjectActivityTimeline(id, { limit: 50 });
+  const activityEvents = activityRows.map((row) => ({
+    projectId: id,
+    action: row.action,
+    entityType: row.entityType,
+    entityId: row.entityId,
+    details: row.details,
+    author: row.author,
+    createdAt: row.createdAt.toISOString(),
+  }));
+  const velocityCompletions = await getProjectVelocityCompletions(id);
 
   const progress = taskCount > 0 ? Math.round((doneTasks / taskCount) * 100) : 0;
 
@@ -353,6 +373,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Task 2.22 — velocity (req 7.5) + activity timeline (req 7.3) */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <VelocityChart completions={velocityCompletions} projectId={id} />
+        <ActivityTimeline events={activityEvents} projectId={id} />
       </div>
     </div>
   );

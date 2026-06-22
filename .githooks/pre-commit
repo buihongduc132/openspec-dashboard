@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Pre-commit hook — Task 1.12 (Phase 0.6 secret hygiene).
+#
+# Scans STAGED changes only with gitleaks for fast, local feedback before a
+# commit is recorded. Install with `scripts/install-hooks.sh` (or
+# `git config core.hooksPath .githooks`).
+#
+# If gitleaks is not on PATH we warn and exit 0 so developers without it
+# installed are not blocked locally — the CI gitleaks gate is the hard block.
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "[pre-commit] gitleaks not found on PATH — skipping secret scan." >&2
+  echo "[pre-commit] Install: https://github.com/gitleaks/gitleaks" >&2
+  echo "[pre-commit] NOTE: CI runs gitleaks regardless; leaks WILL block the PR." >&2
+  exit 0
+fi
+
+# Repo root (hooks may be invoked from a subdirectory).
+ROOT="$(git rev-parse --show-toplevel)"
+CONFIG="$ROOT/.gitleaks.toml"
+
+echo "[pre-commit] scanning staged changes with gitleaks..."
+# `protect --staged` scans the git index (the about-to-be-committed tree),
+# not the working tree, so unstaged secrets are ignored.
+if ! gitleaks git --pre-commit --staged --redact --config="$CONFIG" --verbose; then
+  echo "[pre-commit] gitleaks found a potential secret — commit ABORTED." >&2
+  echo "[pre-commit] To bypass locally (DANGEROUS): git commit --no-verify" >&2
+  exit 1
+fi
+echo "[pre-commit] gitleaks: no secrets found in staged changes."

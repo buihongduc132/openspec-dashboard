@@ -1,0 +1,1 @@
+ALTER TABLE "initiatives" ADD COLUMN "status" varchar DEFAULT 'proposed' NOT NULL;
