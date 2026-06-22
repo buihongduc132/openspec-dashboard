@@ -125,6 +125,14 @@ describe("buildBranchName / parseBranchName (req 08.4b)", () => {
   it("parseBranchName returns null for a branch without a prefix", () => {
     expect(parseBranchName("main")).toBeNull();
   });
+
+  it("buildBranchName strips characters invalid in git refnames (backslash, ~, ^, :, ?, *, [, {, })", () => {
+    // Backslash in particular is forbidden by git refs and must be stripped;
+    // regression for cubic finding that the prior regex omitted backslash.
+    const out = buildBranchName("openspec", "feat\\~^:?*[{bug");
+    expect(out).toBe("openspec/featbug");
+    expect(out).not.toMatch(/[~^:?*[\\{}]/);
+  });
 });
 
 describe("defaultGitIntegrationConfig (req 08.4b push is always explicit)", () => {

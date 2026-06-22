@@ -74,7 +74,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     .returning();
 
   if (!updated) {
-    const freshEtag = computeSchemaEtag(row.definition);
+    // A concurrent write won the race between our SELECT and the atomic
+    // UPDATE. Re-read the current row so the 409 carries the *latest* ETag
+    // (NOT the value we captured at SELECT time, which is now stale).
+    const [freshRow] = await db
+      .select()
+      .from(schemas)
+      .where(eq(schemas.id, id))
+      .limit(1);
+    const freshEtag = freshRow ? computeSchemaEtag(freshRow.definition) : "";
     return NextResponse.json(
       { error: "conflict", etag: freshEtag },
       { status: 409 },

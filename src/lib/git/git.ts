@@ -105,7 +105,7 @@ export function buildBranchName(prefix: string, changeName: string): string {
     .split(/\s+/)
     .join("-")
     .replace(/[\/]+/g, "-")
-    .replace(/[~^:?*[\@{}]/g, "")
+    .replace(/[~^:?*[\\@{}]/g, "")
     .replace(/^[-/]+|[-/]+$/g, "");
   return `${p}/${c}`;
 }

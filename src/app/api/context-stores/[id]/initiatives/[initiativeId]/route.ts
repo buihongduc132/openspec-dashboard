@@ -67,10 +67,15 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; initiativeId: string }> },
 ) {
-  const { initiativeId } = await params;
+  const { id, initiativeId } = await params;
   const body = await req.json();
 
-  const [existing] = await db.select().from(initiatives).where(eq(initiatives.id, initiativeId));
+  // Scope to the context store (req 01.8): a mismatched [id]/[initiativeId]
+  // pair must 404 rather than mutate an initiative owned by another store.
+  const [existing] = await db
+    .select()
+    .from(initiatives)
+    .where(and(eq(initiatives.id, initiativeId), eq(initiatives.contextStoreId, id)));
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -111,8 +116,13 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; initiativeId: string }> },
 ) {
-  const { initiativeId } = await params;
-  const [existing] = await db.select().from(initiatives).where(eq(initiatives.id, initiativeId));
+  const { id, initiativeId } = await params;
+  // Scope to the context store (req 01.8): mirror GET/PATCH so a mismatched
+  // [id]/[initiativeId] pair cannot delete an initiative from another store.
+  const [existing] = await db
+    .select()
+    .from(initiatives)
+    .where(and(eq(initiatives.id, initiativeId), eq(initiatives.contextStoreId, id)));
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

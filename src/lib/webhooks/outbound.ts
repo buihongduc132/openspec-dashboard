@@ -122,7 +122,16 @@ export async function dispatchOutbound(
 
   let lastStatus = 0;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const res = await transport(hook.url, body, headers);
+    // A rejecting transport is a delivery failure, not an exception that
+    // escapes the retry/dead-letter flow (contract: terminal failure is
+    // `dead_lettered` after maxAttempts). Catch and treat as status 0 so the
+    // attempt counts toward the retry budget.
+    let res: { ok: boolean; status: number };
+    try {
+      res = await transport(hook.url, body, headers);
+    } catch {
+      res = { ok: false, status: 0 };
+    }
     lastStatus = res.status;
     if (res.ok && res.status >= 200 && res.status < 300) {
       return { status: "delivered", attempts: attempt };

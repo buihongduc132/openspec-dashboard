@@ -137,6 +137,30 @@ describe("dispatchOutbound", () => {
     expect(calls).toBe(2);
   });
 
+  it("a throwing transport counts as a failed attempt and dead-letters after maxAttempts (does not reject)", async () => {
+    // Regression for cubic finding: a rejected transport previously escaped
+    // the retry/dead-letter flow by rejecting dispatchOutbound itself.
+    let calls = 0;
+    const transport: DispatchTransport = async () => {
+      calls += 1;
+      throw new Error("network down");
+    };
+    const hook: OutboundWebhook = {
+      url: "https://example.com/hook",
+      secret: SECRET,
+      version: 1,
+    };
+    const res = await dispatchOutbound(hook, "{}", allow, {
+      transport,
+      maxAttempts: 3,
+      backoffMs: 0,
+    });
+    expect(res.status).toBe("dead_lettered");
+    if (res.status !== "dead_lettered") throw new Error("unreachable");
+    expect(res.attempts).toBe(3);
+    expect(calls).toBe(3);
+  });
+
   it("result is a typed DispatchResult variant in every case", async () => {
     const hook: OutboundWebhook = {
       url: "https://example.com/hook",

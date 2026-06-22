@@ -43,10 +43,15 @@ export default function SchemaEditorHost({
           body: JSON.stringify({ body: payload.body }),
         });
         if (res.ok) {
-          // Update the stored ETag so subsequent saves use the latest version.
-          const newEtag = res.headers.get("ETag");
-          if (newEtag) {
-            setCurrentIfMatch(newEtag);
+          // The server returns the new whole-file ETag in the PATCH response
+          // body ({ ok: true, etag }). Read it from the body (not an HTTP
+          // header — the route sets none) so subsequent saves carry the fresh
+          // version instead of the stale initial ETag.
+          const data = (await res.json().catch(() => null)) as
+            | { etag?: string }
+            | null;
+          if (data?.etag) {
+            setCurrentIfMatch(data.etag);
           }
           return "saved";
         }
