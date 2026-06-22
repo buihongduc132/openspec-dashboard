@@ -146,9 +146,11 @@ describe("evaluateLeak — happy path (no alert)", () => {
 });
 
 describe("evaluateLeak — cold-start exemption (req 09.5 (c))", () => {
-  it("exempt from geographic implausibility when <5 prior uses", () => {
+  it("still alerts on novel fingerprint in cold-start when <5 prior uses (geo exempt)", () => {
     const prior = makeUses(4, "1.2.3.4", "chrome", 51.5, -0.1, NOW - DAY);
-    // A use 12000 km away — but cold-start exempts geo check (<5 uses).
+    // A use 12000 km away with a novel fingerprint bucket (different IP).
+    // Cold-start exempts the geo check, but novel-fingerprint alerting
+    // MUST still apply (P2 fix).
     const latest: TokenUse = {
       ip: "5.6.7.8",
       userAgent: "chrome",
@@ -162,7 +164,28 @@ describe("evaluateLeak — cold-start exemption (req 09.5 (c))", () => {
       now: NOW,
       resolveGeo: fixedResolver({}),
     });
-    // No alert because geo-implausibility is exempt in cold-start.
+    // Alerts because the fingerprint is novel, even though geo is exempt.
+    expect(r.alert).toBe(true);
+    expect(r.reason).toContain("novel fingerprint");
+  });
+
+  it("no alert in cold-start when fingerprint is already known", () => {
+    const prior = makeUses(4, "1.2.3.4", "chrome", 51.5, -0.1, NOW - DAY);
+    // Same fingerprint (same IP + UA), far away — but since the bucket is
+    // already known and geo is exempt, there is nothing to alert on.
+    const latest: TokenUse = {
+      ip: "1.2.3.4",
+      userAgent: "chrome",
+      lat: -33.86,
+      lon: 151.2,
+      at: NOW,
+    };
+    const r = evaluateLeak({
+      prior,
+      latest,
+      now: NOW,
+      resolveGeo: fixedResolver({}),
+    });
     expect(r.alert).toBe(false);
   });
 

@@ -65,6 +65,15 @@ export async function PATCH(
     if (v === null || v === "") {
       patch.initiativeId = null;
     } else if (typeof v === "string") {
+      // Validate UUID format before hitting the DB (prevents injection /
+      // malformed queries).
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(v)) {
+        return Response.json(
+          { error: "initiativeId must be a valid UUID." },
+          { status: 400 },
+        );
+      }
       patch.initiativeId = v;
     }
     // Non-string / non-null values are ignored (no-op) rather than 400ing,

@@ -190,9 +190,19 @@ async function runLLMTier(
     });
   }
 
+  // Post-flight: per-project daily cap exceeded by this run's tokens →
+  // discard the response so the daily budget is not blown past.
+  if (dailyTokensUsed + raw.tokensUsed > config.dailyTokenCap) {
+    return safe("daily token cap exceeded by this run", {
+      costUsd: raw.costUsd,
+      latencyMs: raw.latencyMs,
+    });
+  }
+
   const parsed = parseFindings(raw.findings);
-  if (parsed.invalid || parsed.findings.length === 0) {
-    // Entirely unusable payload → degrade.
+  // An empty findings array is a valid response (the LLM found no issues).
+  // Only treat structurally invalid payloads as malformed.
+  if (parsed.invalid) {
     return safe("malformed LLM output", {
       costUsd: raw.costUsd,
       latencyMs: raw.latencyMs,

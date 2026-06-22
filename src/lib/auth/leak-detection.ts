@@ -190,6 +190,19 @@ export function evaluateLeak(input: LeakDetectionInput): LeakDecision {
     };
   }
 
+  // Cold-start (req 09.5 (c)): tokens with <5 prior uses are exempt from
+  // geographic implausibility, but novel-fingerprint alerting MUST still
+  // apply. Without this, a stolen token used from a brand-new location
+  // during its first few uses would generate no alert at all.
+  if (novel && !geoApplicable) {
+    return {
+      alert: true,
+      reason:
+        `novel fingerprint bucket (${input.latest.ip} / ${input.latest.userAgent}) ` +
+        `(geo exemption active: <${MIN_USES_FOR_GEO} prior uses)`,
+    };
+  }
+
   return { alert: false, reason: "" };
 }
 

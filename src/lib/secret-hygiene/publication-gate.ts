@@ -184,7 +184,19 @@ function distinctApprovers(record: PublicationRecord): string[] {
 export function releasePublication(
   record: PublicationRecord,
   release: { releasedBy: string },
+  existingChain: ReadonlyArray<ChainedAuditEntry> = [],
 ): PublicationGateResult {
+  // Idempotency: if the record is already released, return the existing
+  // result without re-minting a new audit entry.
+  if (record.releasedAt !== null) {
+    return {
+      released: true,
+      reason: null,
+      record,
+      auditEntries: [],
+    };
+  }
+
   if (!record.secretScan.passed) {
     return {
       released: false,
@@ -235,7 +247,7 @@ export function releasePublication(
     author: release.releasedBy,
     createdAt: releasedAt,
   };
-  const auditEntries = appendEntry([], entry);
+  const auditEntries = appendEntry(existingChain, entry);
 
   return { released: true, reason: null, record: released, auditEntries };
 }

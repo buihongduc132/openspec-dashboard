@@ -95,7 +95,8 @@ function isPrivateV4(ip: string): boolean {
   const rawParts = ip.split(".");
   // Reject leading zeros (e.g. "012") — parseInt would parse "012" as 12,
   // allowing SSRF bypasses like 0127.0.0.1 → 127.0.0.1.
-  if (rawParts.some((p) => p.length > 1 && p[0] === "0")) return false;
+  // Treat as private/blocked to be safe (denylist over allowlist).
+  if (rawParts.some((p) => p.length > 1 && p[0] === "0")) return true;
   const parts = rawParts.map((p) => parseInt(p, 10));
   if (parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)) return false;
   const [a, b] = parts;

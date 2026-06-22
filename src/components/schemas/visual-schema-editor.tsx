@@ -85,6 +85,9 @@ export default function VisualSchemaEditor({
   const [source, setSource] = useState(initialSource);
   const [ifMatch] = useState(initialIfMatch);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  // Local (un-normalized) text for comma-separated inputs, keyed by artifact id.
+  // Prevents commas from being erased on every keystroke; normalized on blur.
+  const [localRequires, setLocalRequires] = useState<Record<string, string>>({});
 
   // Central source of truth: the parsed YAML Document. Recomputed whenever
   // the YAML text changes so both panes stay two-way bound.
@@ -128,17 +131,27 @@ export default function VisualSchemaEditor({
       pushVisualEdit({ type: "set-description", description: e.target.value }),
     [pushVisualEdit],
   );
-  const onArtifactRequires = useCallback(
-    (id: string, e: React.ChangeEvent<HTMLInputElement>) =>
+  const commitRequires = useCallback(
+    (id: string) => {
+      const raw = localRequires[id];
+      if (raw === undefined) return;
+      const normalized = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       pushVisualEdit({
         type: "artifact-requires",
         artifactId: id,
-        requires: e.target.value
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      }),
-    [pushVisualEdit],
+        requires: normalized,
+      });
+      // Clear local override so form-derived values show through again.
+      setLocalRequires((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    },
+    [localRequires, pushVisualEdit],
   );
   const onArtifactApplyTracks = useCallback(
     (id: string, e: React.ChangeEvent<HTMLInputElement>) =>
@@ -241,8 +254,14 @@ export default function VisualSchemaEditor({
                     <Input
                       id={`requires-${row.id}`}
                       aria-label={`requires for ${row.id}`}
-                      value={row.requires}
-                      onChange={(e) => onArtifactRequires(row.id, e)}
+                      value={localRequires[row.id] ?? row.requires}
+                      onChange={(e) =>
+                        setLocalRequires((prev) => ({
+                          ...prev,
+                          [row.id]: e.target.value,
+                        }))
+                      }
+                      onBlur={() => commitRequires(row.id)}
                     />
                     <label
                       className="block text-[11px] font-medium"

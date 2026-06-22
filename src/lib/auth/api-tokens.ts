@@ -14,7 +14,7 @@
  * Source: req 09 §9.5.
  */
 import { createHash, randomBytes } from "node:crypto";
-import type { Role } from "./rbac";
+import { ROLE_RANK, type Role } from "./rbac";
 
 /** Injectable monotonic clock (milliseconds). */
 export type Clock = () => number;
@@ -106,7 +106,7 @@ export function issueApiToken(input: IssueApiTokenInput): IssueApiTokenResult {
     secret,
     secretHash: sha256(secret),
     userId: input.userId,
-    scope: input.scope,
+    scope: { ...input.scope },
     createdAt: now,
     lastUsedAt: null,
     revoked: false,
@@ -166,10 +166,8 @@ export function recordUse(token: ApiToken, clock: Clock = Date.now): ApiToken {
 
 // --- helpers -----------------------------------------------------------------
 
-const RANK: Record<Role, number> = { viewer: 1, editor: 2, owner: 3 };
-
 function rank(role: Role): number {
-  return RANK[role];
+  return ROLE_RANK[role];
 }
 
 function sha256(s: string): string {

@@ -15,7 +15,7 @@
  * Source: `openspec/changes/phase3b-integration/specs/schema-visual-editor/spec.md`.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { schemas } from "@/db/schema";
 import { computeSchemaEtag } from "@/lib/schemas/schema-etag";
@@ -49,7 +49,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   let body: string;
   try {
     const json = (await req.json()) as { body?: string };
-    body = typeof json.body === "string" ? json.body : "";
+    if (typeof json.body !== "string" || json.body.length === 0) {
+      return NextResponse.json({ error: "missing or invalid body" }, { status: 400 });
+    }
+    body = json.body;
   } catch {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
@@ -64,10 +67,19 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     );
   }
 
-  await db
+  const [updated] = await db
     .update(schemas)
     .set({ definition: body, updatedAt: new Date() })
-    .where(eq(schemas.id, id));
+    .where(and(eq(schemas.id, id), eq(schemas.definition, row.definition)))
+    .returning();
+
+  if (!updated) {
+    const freshEtag = computeSchemaEtag(row.definition);
+    return NextResponse.json(
+      { error: "conflict", etag: freshEtag },
+      { status: 409 },
+    );
+  }
 
   const etag = computeSchemaEtag(body);
   return NextResponse.json({ ok: true, etag });

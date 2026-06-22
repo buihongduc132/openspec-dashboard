@@ -66,10 +66,19 @@ export function verifyInboundSignature(
   return { valid: false, reason: "bad_signature" };
 }
 
-/** Injectable event-id dedup store (e.g. Redis SET, Postgres unique). */
+/** Injectable event-id dedup store (e.g. Redis SET NX, Postgres unique constraint). */
 export interface DedupStore {
   has(id: string): Promise<boolean>;
   mark(id: string): Promise<void>;
+  /**
+   * Atomically insert `id` if it does not already exist.
+   * Returns `true` when the id was newly inserted (first delivery) and
+   * `false` when it was already present (duplicate). Implementations MUST
+   * guarantee atomicity (e.g. `INSERT ... ON CONFLICT DO NOTHING` in
+   * Postgres, `SET NX` in Redis) to prevent races under concurrent
+   * deliveries.
+   */
+  markIfAbsent(id: string): Promise<boolean>;
 }
 
 /** Result of {@link handleInboundEvent}. */
@@ -88,11 +97,10 @@ export async function handleInboundEvent(
   eventId: string,
   store: DedupStore,
 ): Promise<InboundEventResult> {
-  if (await store.has(eventId)) {
-    return { duplicate: true };
-  }
-  await store.mark(eventId);
-  return { duplicate: false };
+  // Atomic mark-if-absent: prevents races where two concurrent deliveries
+  // both pass a has() check and both proceed to mark().
+  const inserted = await store.markIfAbsent(eventId);
+  return { duplicate: !inserted };
 }
 
 /** Constant-time string compare to avoid timing oracles. */

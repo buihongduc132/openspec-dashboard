@@ -80,7 +80,11 @@ export interface HeatmapCell {
 }
 
 export interface ActivityHeatmapOptions {
-  /** Trailing window length in days (AC 7.2b). */
+  /**
+   * Trailing window length in days (AC 7.2b). Coerced to a finite integer
+   * inside {@link computeActivityHeatmap}; non-numeric or non-finite values
+   * are treated as 0 (which becomes 1 after `Math.max(1, …)`).
+   */
   windowDays: number;
   /** Reference "now" for anchoring the window (injected for deterministic tests). */
   referenceNow?: Date;
@@ -107,7 +111,13 @@ export function computeActivityHeatmap(
   options: ActivityHeatmapOptions
 ): HeatmapCell[] {
   const now = options.referenceNow ?? new Date();
-  const bucketCount = Math.max(1, options.windowDays);
+  // Coerce windowDays to a safe, finite positive integer so that NaN,
+  // Infinity, or non-numeric values cannot produce absurd bucket counts.
+  const rawWindowDays =
+    typeof options.windowDays === "number" && Number.isFinite(options.windowDays)
+      ? Math.trunc(options.windowDays)
+      : 0;
+  const bucketCount = Math.max(1, rawWindowDays);
 
   const todayMidnight = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())

@@ -104,7 +104,9 @@ export function computeArchiveAnalytics(
   // Most-modified domains across archives (descending count, then domain id).
   const domainCounts = new Map<string, number>();
   for (const c of archived) {
-    for (const did of c.domainIds) {
+    // Deduplicate per change so a repeated domainId in a single archive
+    // does not inflate the count.
+    for (const did of new Set(c.domainIds)) {
       domainCounts.set(did, (domainCounts.get(did) ?? 0) + 1);
     }
   }

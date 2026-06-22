@@ -9,7 +9,7 @@
  * status into the `SaveStatus` the editor consumes (200 -> saved,
  * 409 -> conflict / out-of-band, 422 -> error).
  */
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import VisualSchemaEditor, { type SaveStatus } from "@/components/schemas/visual-schema-editor";
 import type { SavePayload } from "@/lib/schemas/visual-editor";
 
@@ -26,6 +26,8 @@ export default function SchemaEditorHost({
   initialIfMatch,
   schemaPath,
 }: SchemaEditorHostProps) {
+  const [currentIfMatch, setCurrentIfMatch] = useState(initialIfMatch);
+
   const onSave = useCallback(
     async (payload: SavePayload): Promise<SaveStatus> => {
       try {
@@ -33,24 +35,34 @@ export default function SchemaEditorHost({
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            "If-Match": payload.ifMatch,
+            // Use the host-tracked ETag so subsequent saves after a
+            // successful PATCH carry the fresh version rather than the
+            // stale value baked into the editor's initial state.
+            "If-Match": currentIfMatch,
           },
           body: JSON.stringify({ body: payload.body }),
         });
-        if (res.ok) return "saved";
+        if (res.ok) {
+          // Update the stored ETag so subsequent saves use the latest version.
+          const newEtag = res.headers.get("ETag");
+          if (newEtag) {
+            setCurrentIfMatch(newEtag);
+          }
+          return "saved";
+        }
         if (res.status === 409) return "conflict";
         return "error";
       } catch {
         return "error";
       }
     },
-    [schemaId],
+    [schemaId, currentIfMatch],
   );
 
   return (
     <VisualSchemaEditor
       initialSource={initialSource}
-      initialIfMatch={initialIfMatch}
+      initialIfMatch={currentIfMatch}
       schemaPath={schemaPath}
       onSave={onSave}
     />

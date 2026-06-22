@@ -74,6 +74,11 @@ describe("handleInboundEvent (req 08.5b idempotency)", () => {
       mark: async (id) => {
         seen.add(id);
       },
+      markIfAbsent: async (id) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      },
     };
   }
 

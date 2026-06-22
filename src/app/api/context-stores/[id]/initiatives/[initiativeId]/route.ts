@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { initiatives, changes, projects } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { canTransition, isValidStatus } from "@/lib/initiatives/status";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +30,12 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; initiativeId: string }> },
 ) {
-  const { initiativeId } = await params;
+  const { id, initiativeId } = await params;
 
   const [initiative] = await db
     .select()
     .from(initiatives)
-    .where(eq(initiatives.id, initiativeId));
+    .where(and(eq(initiatives.id, initiativeId), eq(initiatives.contextStoreId, id)));
   if (!initiative) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

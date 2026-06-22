@@ -119,6 +119,12 @@ export function globMatch(pattern: string, path: string): boolean {
   while (i < pattern.length) {
     const c = pattern[i];
     if (c === "*" && pattern[i + 1] === "*") {
+      // Terminal `**` (end of pattern) — match everything remaining.
+      if (i + 2 >= pattern.length) {
+        re += ".*";
+        i += 2;
+        continue;
+      }
       // `**` optionally followed by a slash — matches any number of segments.
       re += "(?:.*/)?";
       i += 2;
@@ -173,9 +179,11 @@ export function proposeDeltaSpec(
     return { ok: false, reason: "not_authorized" };
   }
   const id = randomUUID().slice(0, 8);
+  const safeChange = sanitizePathSegment(changeName);
+  const safeDomain = sanitizePathSegment(domainName);
   const artifactPath =
-    `openspec/.dashboard/proposals/${changeName}/${domainName}.${id}.md`;
-  const previewUrl = `/projects/${scope.projectId}/changes/${changeName}?preview=${encodeURIComponent(artifactPath)}`;
+    `openspec/.dashboard/proposals/${safeChange}/${safeDomain}.${id}.md`;
+  const previewUrl = `/projects/${scope.projectId}/changes/${encodeURIComponent(safeChange)}?preview=${encodeURIComponent(artifactPath)}`;
   void content; // caller persists; this module computes the target path only
   return {
     ok: true,
@@ -183,4 +191,17 @@ export function proposeDeltaSpec(
     previewUrl,
     status: "pending_review",
   };
+}
+
+/**
+ * Sanitise a user-supplied path segment for use in a file-system path.
+ *
+ * Strips path separators (`/`, `\`) and parent-directory sequences (`.`/`..`)
+ * so that a malicious value like `../../etc/passwd` cannot escape the intended
+ * directory.
+ */
+function sanitizePathSegment(segment: string): string {
+  const cleaned = segment.replace(/[\/\\]+/g, "");
+  if (cleaned === ".." || cleaned === ".") return "";
+  return cleaned;
 }

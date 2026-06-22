@@ -79,7 +79,39 @@ export interface TrustDecision {
  *     `writesInLastMin` must be < `maxWriteRatePerMin`; otherwise 429.
  *  4. Otherwise allowed.
  */
+/**
+ * Hard-guard: paths that are ALWAYS denied regardless of the allowlist (req 09.10
+ * defense-in-depth). `config.yaml` and other sensitive config files must never
+ * be writable through the agent trust boundary even if an operator mistakenly
+ * adds a permissive glob.
+ */
+const DENIED_PATHS = ["config.yaml", "config.yml", ".env"];
+
+function isDeniedPath(path: string): boolean {
+  const segments = path.split("/");
+  return DENIED_PATHS.some((d) => segments.includes(d));
+}
+
+/**
+ * Decide whether a request is allowed under `boundary` (req 09.10).
+ *
+ * Decision logic (default deny):
+ *  0. **config.yaml hard guard** — deny any path touching sensitive config
+ *     files regardless of the allowlist (defense in depth).
+ *  1. Path must match at least one glob in `pathAllowlist`; otherwise 403.
+ *  2. Verb must be in `allowedVerbs` (case-insensitive); otherwise 403.
+ *  3. If the verb is a write (`POST` / `PATCH` / `PUT` / `DELETE`),
+ *     `writesInLastMin` must be < `maxWriteRatePerMin`; otherwise 429.
+ *  4. Otherwise allowed.
+ */
 export function decideTrust(boundary: TrustBoundary, input: TrustDecisionInput): TrustDecision {
+  if (isDeniedPath(input.path)) {
+    return {
+      allowed: false,
+      statusCode: 403,
+      reason: `trust boundary: path '${input.path}' is denied by the config.yaml hard guard`,
+    };
+  }
   if (!boundary.pathAllowlist.some((p) => matchGlob(input.path, p))) {
     return {
       allowed: false,
@@ -120,6 +152,12 @@ export function decideTrust(boundary: TrustBoundary, input: TrustDecisionInput):
  *  - Literal characters match exactly.
  *
  * `..` path components cause the match to fail (defense in depth).
+ *
+ * NOTE: This is a deliberate duplicate of `globMatch` in
+ * `src/lib/agent-api/scope.ts`. Both implement the same glob semantics but
+ * live in separate trust-boundary domains that cannot import each other
+ * without creating a circular dependency. Keep both implementations in sync
+ * when changing matching behavior.
  */
 export function matchGlob(path: string, pattern: string): boolean {
   // Normalize `..` out of consideration: reject escape attempts.

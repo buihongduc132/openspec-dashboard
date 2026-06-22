@@ -31,6 +31,7 @@
  * enforces this invariant.
  */
 import { spawn as defaultSpawn, type ChildProcess } from "node:child_process";
+import { dirname } from "node:path";
 
 /* ------------------------------------------------------------------ *
  * Commit messages (req 08.4a)
@@ -103,7 +104,8 @@ export function buildBranchName(prefix: string, changeName: string): string {
     .trim()
     .split(/\s+/)
     .join("-")
-    .replace(/\/+/g, "-")
+    .replace(/[\/]+/g, "-")
+    .replace(/[~^:?*[\@{}]/g, "")
     .replace(/^[-/]+|[-/]+$/g, "");
   return `${p}/${c}`;
 }
@@ -236,13 +238,23 @@ async function runGit(
         stderr: "spawn error",
       }),
     );
-    child.on("close", (code) =>
+    child.on("close", (code, signal) => {
+      // A null code means the process was terminated by a signal (e.g. SIGTERM,
+      // SIGKILL). Treating that as success (code 0) masks real failures.
+      if (code === null || signal) {
+        resolve({
+          code: 1,
+          stdout: stdoutChunks.join(""),
+          stderr: signal ? `process terminated by ${signal}` : stderrChunks.join(""),
+        });
+        return;
+      }
       resolve({
-        code: code ?? 0,
+        code,
         stdout: stdoutChunks.join(""),
         stderr: stderrChunks.join(""),
-      }),
-    );
+      });
+    });
   });
 }
 
@@ -269,6 +281,7 @@ export async function cloneSandboxed(
   opts: GitOpOptions = {},
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   // 1) Clone without checkout, disabling hooks on the new repo via `-c`.
+  //    cwd is the PARENT of destDir — destDir does not exist yet.
   const cloneResult = await runGit(
     [
       "-c",
@@ -279,7 +292,7 @@ export async function cloneSandboxed(
       remoteUrl,
       destDir,
     ],
-    destDir,
+    dirname(destDir),
     opts.spawn,
   );
   if (cloneResult.code !== 0) return cloneResult;
@@ -341,7 +354,7 @@ export async function syncFromRemote(
   repoDir: string,
   opts: GitOpOptions = {},
 ): Promise<SyncResult> {
-  const result = await runGit(["pull", "--no-edit"], repoDir, opts.spawn);
+  const result = await runGit(["pull", "--no-edit", "--no-rebase"], repoDir, opts.spawn);
   if (result.code === 0) return { status: "ok" };
   const paths = [...result.stdout.matchAll(CONFLICT_PATH_RE)].map((m) =>
     m[1].trim(),
