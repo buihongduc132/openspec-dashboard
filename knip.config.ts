@@ -8,8 +8,6 @@ const config: KnipConfig = {
     "src/app/**/route.ts",
     // shadcn/ui component library (designed for external reuse)
     "src/components/ui/**/*.{ts,tsx}",
-    // Database schema exports (task 3.2: whitelist as entry points)
-    "src/db/schema.ts",
     // Test entry points (so knip sees devDependency imports from test files)
     "src/**/*.test.{ts,tsx}",
     "tests/**/*.test.{ts,tsx}",
@@ -24,8 +22,13 @@ const config: KnipConfig = {
     // Pre-existing dead code — not imported by any current entry point.
     // Will be integrated or removed in future phases.
     "src/app/kanban/_global-kanban.tsx",
-    "src/app/projects/[id]/kanban/_kanban-board.tsx",
     "src/app/projects/[id]/settings/_settings-form.tsx",
+    // Barrel index files for future API surface consumption
+    "src/lib/agent-api/index.ts",
+    "src/lib/change-richness/index.ts",
+    "src/lib/tasks-richness/index.ts",
+    "src/lib/verification/index.ts",
+    "src/lib/webhooks/index.ts",
   ],
   ignoreDependencies: [
     // Radix UI: installed for shadcn/ui components not yet generated/integrated.
@@ -45,6 +48,7 @@ const config: KnipConfig = {
     "tailwindcss", // Used via PostCSS config (postcss.config.mjs)
     "testcontainers", // Peer dep of @testcontainers/postgresql
     "@testing-library/jest-dom", // For future component tests
+    "axe-core", // Used via CI a11y workflow, not directly imported
   ],
   ignoreBinaries: [],
 };
