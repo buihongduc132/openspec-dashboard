@@ -33,13 +33,11 @@ const config: KnipConfig = {
     "@radix-ui/react-avatar",
     "@radix-ui/react-checkbox",
     "@radix-ui/react-dialog",
-    "@radix-ui/react-dropdown-menu",
     "@radix-ui/react-label",
     "@radix-ui/react-progress",
     "@radix-ui/react-scroll-area",
     "@radix-ui/react-select",
     "@radix-ui/react-switch",
-    "@radix-ui/react-tabs",
     "@radix-ui/react-tooltip",
     "react-markdown",
     // Dev deps used via CLI or config, not directly imported:
@@ -47,7 +45,6 @@ const config: KnipConfig = {
     "tailwindcss", // Used via PostCSS config (postcss.config.mjs)
     "testcontainers", // Peer dep of @testcontainers/postgresql
     "@testing-library/jest-dom", // For future component tests
-    "@testing-library/react", // For future component tests
   ],
   ignoreBinaries: [],
 };

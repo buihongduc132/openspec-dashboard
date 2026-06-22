@@ -16,7 +16,7 @@
  * Source: req 09 §9.4.
  */
 
-import { randomBytes as nodeRandomBytes } from "node:crypto";
+import { randomBytes as nodeRandomBytes, timingSafeEqual } from "node:crypto";
 
 /** Per-project roles reused from {@link ./rbac}. */
 import type { Role } from "./rbac";
@@ -80,7 +80,7 @@ export interface TeamRoleInput {
 export function issueInvite(input: IssueInviteInput): TeamInvite {
   const now = (input.clock ?? Date.now)();
   const ttl = input.ttlMs ?? DEFAULT_INVITE_TTL_MS;
-  const token = (input.randomBytes ?? defaultRandomHex)(32);
+  const token = (input.randomBytes ?? defaultRandomHex)(64);
   return {
     token,
     teamId: input.teamId,
@@ -127,7 +127,7 @@ export function consumeInvite(
 ): ConsumeInviteResult {
   const now = (opts.clock ?? Date.now)();
 
-  if (invite.token !== presentedToken) {
+  if (!constantTimeEqual(invite.token, presentedToken)) {
     return { ok: false, reason: "invalid token: token mismatch" };
   }
   if (invite.consumed) {
@@ -163,4 +163,12 @@ export function propagateTeamRoles(input: TeamRoleInput, projectId: string): Rol
 /** Default RNG: `n` hex chars from `node:crypto`. */
 function defaultRandomHex(n: number): string {
   return nodeRandomBytes(Math.ceil(n / 2)).toString("hex").slice(0, n);
+}
+
+/** Constant-time string comparison to prevent timing attacks on token checks. */
+function constantTimeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }

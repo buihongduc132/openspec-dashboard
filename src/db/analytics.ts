@@ -196,12 +196,13 @@ export async function getProjectRollupInputs(): Promise<ProjectRollupInput[]> {
         .from(auditLogs)
         .where(eq(auditLogs.projectId, p.id));
 
-      const [{ owner }] = await db
+      const ownerRows = await db
         .select({ owner: tasks.assignee })
         .from(tasks)
         .where(and(eq(tasks.projectId, p.id), sql`${tasks.assignee} is not null`))
         .orderBy(asc(tasks.orderIndex))
         .limit(1);
+      const owner = ownerRows.length > 0 ? ownerRows[0].owner : null;
 
       return {
         id: p.id,
@@ -271,7 +272,7 @@ export async function getSpecCoverageInputs(
         .where(eq(specs.domainId, d.domainId));
 
       const [{ activeChangesTouching }] = await db
-        .select({ activeChangesTouching: count() })
+        .select({ activeChangesTouching: sql<number>`count(distinct ${deltaSpecs.changeId})::int` })
         .from(deltaSpecs)
         .innerJoin(
           changes,

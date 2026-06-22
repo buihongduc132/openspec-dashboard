@@ -81,7 +81,7 @@ function isDenylisted(lowerHost: string): boolean {
   // IPv6 literal (with or without brackets already removed).
   const v6 = lowerHost.replace(/^\[|\]$/g, "");
   if (IPV6_RE.test(v6)) {
-    if (v6 === "::1") return true;
+    if (normalizeV6(v6) === "0000:0000:0000:0000:0000:0000:0000:0001") return true;
     if (v6.toLowerCase() === "fd00:ec2::254") return true;
     if (isLinkLocalV6(v6)) return true;
   }
@@ -92,7 +92,11 @@ const IPV4_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
 const IPV6_RE = /^[0-9a-fA-F:]+$/;
 
 function isPrivateV4(ip: string): boolean {
-  const parts = ip.split(".").map((p) => parseInt(p, 10));
+  const rawParts = ip.split(".");
+  // Reject leading zeros (e.g. "012") — parseInt would parse "012" as 12,
+  // allowing SSRF bypasses like 0127.0.0.1 → 127.0.0.1.
+  if (rawParts.some((p) => p.length > 1 && p[0] === "0")) return false;
+  const parts = rawParts.map((p) => parseInt(p, 10));
   if (parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)) return false;
   const [a, b] = parts;
   // 10/8
@@ -118,4 +122,22 @@ function isMetadataV4(ip: string): boolean {
 
 function isLinkLocalV6(v6: string): boolean {
   return /^fe[89ab][0-9a-f]:/i.test(v6);
+}
+
+/**
+ * Normalize an IPv6 address to its fully-expanded, 4-digit-per-group form.
+ * Handles `::` expansion so that e.g. `0:0:0:0:0:0:0:1` and `::1` both
+ * normalize to `0000:0000:0000:0000:0000:0000:0000:0001`.
+ */
+function normalizeV6(v6: string): string {
+  const parts = v6.split("::");
+  if (parts.length === 2) {
+    const left = parts[0] ? parts[0].split(":") : [];
+    const right = parts[1] ? parts[1].split(":") : [];
+    const missing = 8 - left.length - right.length;
+    if (missing < 0) return v6; // invalid — too many groups
+    const groups = [...left, ...Array(missing).fill("0"), ...right];
+    return groups.map((g) => g.padStart(4, "0").toLowerCase()).join(":");
+  }
+  return v6.split(":").map((g) => g.padStart(4, "0").toLowerCase()).join(":");
 }

@@ -107,9 +107,10 @@ export async function dispatchOutbound(
     return { status: "blocked", reason: "ssrf" };
   }
 
-  const transport =
-    opts.transport ??
-    (async () => ({ ok: true, status: 200 }) as { ok: boolean; status: number });
+  if (!opts.transport) {
+    throw new Error("dispatchOutbound: a transport function is required");
+  }
+  const transport = opts.transport;
   const maxAttempts = opts.maxAttempts ?? 4;
   const base = opts.backoffMs ?? 500;
   const sleep: SleepFn = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));

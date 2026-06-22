@@ -72,8 +72,13 @@ export function parseSchemaDocument(source: string): ParseResult {
 export function buildVisualForm(doc: Document.Parsed): VisualForm {
   const obj = (doc.toJS() as Record<string, unknown>) ?? {};
   const artifacts = Array.isArray(obj.artifacts)
-    ? obj.artifacts.map((a: Record<string, unknown>) => ({
-        id: String(a.id ?? ""),
+    ? obj.artifacts
+        .filter(
+          (a): a is Record<string, unknown> =>
+            a !== null && typeof a === "object",
+        )
+        .map((a) => ({
+          id: String(a.id ?? ""),
         generates: String(a.generates ?? ""),
         requires: asStringArray(a.requires),
         template: a.template ? String(a.template) : undefined,
