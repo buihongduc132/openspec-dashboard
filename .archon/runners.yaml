@@ -1,0 +1,9 @@
+version: 2
+entries:
+  - match:
+      remote: "https://github.com/buihongduc132/openspec-dashboard.git"
+      aliases: [openspec-dashboard]
+    commands:
+      test_full: "npm run test && npm run test:integration"
+      typecheck: "npm run typecheck"
+      lint: "npm run lint"
