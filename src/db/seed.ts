@@ -20,9 +20,13 @@ async function seed() {
   console.log("🌱 Seeding database...");
 
   // ─── Projects ──────────────────────────────────────────────────────────────
+  // The first project uses a deterministic id ("seed-project-1") so CI
+  // perf probes (k6 read-latency, index-freshness) can target it by a stable
+  // identifier via K6_PROJECT_ID / FRESHNESS_PROJECT_ID env.
   const [proj] = await db
     .insert(projects)
     .values({
+      id: "seed-project-1",
       name: "E-Commerce Platform",
       description: "Main e-commerce application with product catalog, cart, checkout, and user management.",
       rootPath: "/repos/ecommerce-platform",
