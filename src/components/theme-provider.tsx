@@ -16,22 +16,20 @@ type ThemeProviderState = {
 const ThemeProviderContext = React.createContext<ThemeProviderState | undefined>(undefined);
 
 export function ThemeProvider({ children, defaultTheme = "system" }: ThemeProviderProps) {
-  // Initialize with defaultTheme so server-rendered and hydrated markup
-  // match (avoiding a Next.js hydration mismatch when the stored theme
-  // differs from defaultTheme). The stored theme is applied in an effect
-  // after mount.
-  const [theme, setThemeState] = React.useState<Theme>(defaultTheme);
-
-  React.useEffect(() => {
+  // Lazy-initialize theme from localStorage on the client so we never call
+  // setState synchronously inside an effect (which the react-hooks lint rule
+  // flags as a source of cascading renders). On the server (SSR) we fall back
+  // to defaultTheme; applyTheme() runs in a separate effect after mount to
+  // sync the DOM.
+  const [theme, setThemeState] = React.useState<Theme>(() => {
+    if (typeof window === "undefined") return defaultTheme;
     try {
-      const stored = localStorage.getItem("openspec-theme") as Theme | null;
-      if (stored) {
-        setThemeState(stored);
-      }
+      return (localStorage.getItem("openspec-theme") as Theme | null) ?? defaultTheme;
     } catch {
       /* ignore — localStorage may be unavailable (private mode, SSR) */
+      return defaultTheme;
     }
-  }, []);
+  });
 
   React.useEffect(() => {
     applyTheme(theme);
