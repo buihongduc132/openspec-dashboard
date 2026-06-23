@@ -40,7 +40,9 @@ export function deriveParseErrors(projectionError: string | null): ParseIssueRow
         typeof (e as ParseIssueRow).file === "string" &&
         ((e as ParseIssueRow).severity === "warn" ||
           (e as ParseIssueRow).severity === "error") &&
-        typeof (e as ParseIssueRow).message === "string",
+        typeof (e as ParseIssueRow).message === "string" &&
+        (typeof (e as ParseIssueRow).line === "undefined" ||
+          typeof (e as ParseIssueRow).line === "number"),
     );
   } catch {
     /* not JSON → it's a skip-reason string; parseErrors stays empty */

@@ -7,14 +7,13 @@
  * be non-blocking"). The queue is constructed lazily on first access and bound
  * to the real {@link projectProject} worker via {@link db}.
  */
-import { db } from "@/db";
+import { pool } from "@/db";
 import { createProjectionQueue } from "@/lib/projection/queue";
 import { projectProject } from "@/lib/projection/project";
 import type { ProjectionQueue } from "@/lib/projection/queue";
 import type { ProjectionDb } from "@/lib/projection/upsert";
 import * as schema from "@/db/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { pool } from "@/db";
 
 let singleton: ProjectionQueue | null = null;
 

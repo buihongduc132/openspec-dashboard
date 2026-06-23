@@ -38,7 +38,8 @@ export async function GET(
   const job = getProjectionQueue().getStatus(id);
   // `idle` jobs are NOT "in-flight" — only queued/running/failed surface a
   // currentJob to the UI. The projection-status spec describes currentJob as
-  // the live job; once idle it is reported as null.
+  // the live job; once idle it is reported as null. `failed` is reported so
+  // the UI can surface the most recent failed background run.
   const currentJob =
     job && (job.status === "queued" || job.status === "running" || job.status === "failed")
       ? {

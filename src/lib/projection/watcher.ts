@@ -66,17 +66,22 @@ export function isDashboardWrite(
   ownRootOverride?: string,
 ): boolean {
   if (!testPath) return false;
+  // Normalize to forward slashes: chokidar emits forward slashes, but
+  // path.resolve produces platform-specific separators (backslashes on
+  // Windows). Comparing cross-format paths would miss matches on Windows.
+  const normalizedPath = testPath.replace(/\\/g, "/");
   // Match the dashboard cache dir anywhere in the path (segment boundary).
   if (
-    testPath === DASHBOARD_DIR ||
-    testPath.startsWith(`${DASHBOARD_DIR}/`) ||
-    testPath.includes(`/${DASHBOARD_DIR}/`) ||
-    testPath.endsWith(`/${DASHBOARD_DIR}`)
+    normalizedPath === DASHBOARD_DIR ||
+    normalizedPath.startsWith(`${DASHBOARD_DIR}/`) ||
+    normalizedPath.includes(`/${DASHBOARD_DIR}/`) ||
+    normalizedPath.endsWith(`/${DASHBOARD_DIR}`)
   ) {
     return true;
   }
   const own = dashboardOwnRoot(ownRootOverride);
-  if (own && (testPath === own || testPath.startsWith(`${own}/`))) {
+  const ownNorm = own ? own.replace(/\\/g, "/") : null;
+  if (ownNorm && (normalizedPath === ownNorm || normalizedPath.startsWith(`${ownNorm}/`))) {
     return true;
   }
   return false;
@@ -161,7 +166,9 @@ export function startWatch(
     }, WATCHER_DEBOUNCE_MS);
   };
 
-  const openspecGlob = path.join("openspec", "**", "*");
+  // chokidar requires forward slashes in glob patterns; path.join would
+  // emit backslashes on Windows and break matching.
+  const openspecGlob = "openspec/**/*";
   const watcher = watch(openspecGlob, {
     cwd: rootPath,
     ignoreInitial: true,
@@ -177,6 +184,14 @@ export function startWatch(
     watcher.once("ready", () => resolve());
   });
   watcher.on("all", () => debounce());
+  // chokidar emits `error` events (e.g. ENOSPC inotify limit). Without a
+  // listener Node treats them as unhandled and crashes the process.
+  watcher.on("error", (err) => {
+    console.warn(
+      `WatcherRegistry: chokidar error for "${projectId}" —`,
+      err,
+    );
+  });
   entry.watcher = watcher;
   entry.ready = ready;
   registry.set(projectId, entry);

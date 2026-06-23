@@ -87,11 +87,14 @@ export async function sweepStaleProjects(
 export const defaultNewestMtime: NewestMtimeResolver = async (
   rootPath,
 ): Promise<number | null> => {
-  const { existsSync, readdirSync, statSync } = await import("node:fs");
+  const { promises: fs } = await import("node:fs");
   const path = await import("node:path");
 
   const openspecDir = path.join(rootPath, "openspec");
-  if (!existsSync(openspecDir) || !statSync(openspecDir).isDirectory()) {
+  try {
+    const stat = await fs.stat(openspecDir);
+    if (!stat.isDirectory()) return null;
+  } catch {
     return null;
   }
 
@@ -99,25 +102,24 @@ export const defaultNewestMtime: NewestMtimeResolver = async (
   const stack = [openspecDir];
   while (stack.length > 0) {
     const dir = stack.pop() as string;
-    let entries: string[];
+    let entries: import("node:fs").Dirent[];
     try {
-      entries = readdirSync(dir);
+      entries = await fs.readdir(dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const entry of entries) {
-      const full = path.join(dir, entry);
-      let st: ReturnType<typeof statSync>;
+      const full = path.join(dir, entry.name);
       try {
-        st = statSync(full);
+        const st = await fs.stat(full);
+        if (st.isDirectory()) {
+          stack.push(full);
+        } else if (st.isFile()) {
+          const mtime = st.mtimeMs;
+          if (mtime > newest) newest = mtime;
+        }
       } catch {
         continue;
-      }
-      if (st.isDirectory()) {
-        stack.push(full);
-      } else if (st.isFile()) {
-        const mtime = st.mtimeMs;
-        if (mtime > newest) newest = mtime;
       }
     }
   }

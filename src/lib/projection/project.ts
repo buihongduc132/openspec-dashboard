@@ -93,48 +93,58 @@ export async function projectProject(
   }
 
   // 2. Scan the openspec tree.
-  const scan = scanProjectTree(project.rootPath);
-  if (!scan.ok) {
-    return recordSkip(db, projectId, scan.reason);
-  }
+  // Steps 2–7 are wrapped in a try-catch to honor the "Never throws"
+  // contract (content-projection spec, design D5): any failure (scan error,
+  // DB connection error, etc.) is recorded onto the project row as a skip
+  // reason rather than rejecting the promise, which could crash a worker or
+  // leave the queue in a stuck state.
+  try {
+    const scan = scanProjectTree(project.rootPath);
+    if (!scan.ok) {
+      return recordSkip(db, projectId, scan.reason);
+    }
 
-  // 3. Parse every file (issues collected, never thrown).
-  const parsed = runParsers(scan, readFileSyncUtf8);
+    // 3. Parse every file (issues collected, never thrown).
+    const parsed = runParsers(scan, readFileSyncUtf8);
 
-  // 4. Upsert into the DB (idempotent + incremental via content-hash).
-  await upsertProjectContent(db, projectId, parsed.files);
+    // 4. Upsert into the DB (idempotent + incremental via content-hash).
+    await upsertProjectContent(db, projectId, parsed.files);
 
-  // 5. Normalize parse issues for storage + UI.
-  const parseErrors = parsed.issues.map(toProjectionParseError);
+    // 5. Normalize parse issues for storage + UI.
+    const parseErrors = parsed.issues.map(toProjectionParseError);
 
-  // 6. Write status fields. Empty parseErrors → null projectionError (clean).
-  const now = new Date();
-  const projectionErrorBlob =
-    parseErrors.length > 0 ? JSON.stringify(parseErrors) : null;
+    // 6. Write status fields. Empty parseErrors → null projectionError (clean).
+    const now = new Date();
+    const projectionErrorBlob =
+      parseErrors.length > 0 ? JSON.stringify(parseErrors) : null;
 
-  await db
-    .update(projects)
-    .set({
+    await db
+      .update(projects)
+      .set({
+        projected: true,
+        lastProjectedAt: now,
+        projectionError: projectionErrorBlob,
+        updatedAt: now,
+      })
+      .where(and(eq(projects.id, projectId)));
+
+    // 7. Auto-start the chokidar watcher for this local project (task 8.3 /
+    //  content-projection spec: "started the first time a local project is
+    //  projected"). Idempotent — startWatch no-ops when already registered. The
+    //  onEvent callback re-enqueues a projection on debounced file change. The
+    //  queue is dynamically imported to avoid a project ↔ queue-instance cycle.
+    ensureWatcher(projectId, project.rootPath);
+
+    return {
+      projectId,
       projected: true,
       lastProjectedAt: now,
-      projectionError: projectionErrorBlob,
-      updatedAt: now,
-    })
-    .where(and(eq(projects.id, projectId)));
-
-  // 7. Auto-start the chokidar watcher for this local project (task 8.3 /
-  //  content-projection spec: "started the first time a local project is
-  //  projected"). Idempotent — startWatch no-ops when already registered. The
-  //  onEvent callback re-enqueues a projection on debounced file change. The
-  //  queue is dynamically imported to avoid a project ↔ queue-instance cycle.
-  ensureWatcher(projectId, project.rootPath);
-
-  return {
-    projectId,
-    projected: true,
-    lastProjectedAt: now,
-    parseErrors,
-  };
+      parseErrors,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return recordSkip(db, projectId, `Projection failed: ${message}`);
+  }
 }
 
 /**

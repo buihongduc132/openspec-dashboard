@@ -62,9 +62,12 @@ export interface ProjectionQueue {
 export function createProjectionQueue(worker: ProjectWorker): ProjectionQueue {
   // One in-flight job per project — this is the coalescing seam.
   const inFlight = new Map<string, InFlightJob>();
-  // Last-completed job id per project, so `getStatus` can report idle with a
-  // stable jobId after completion.
-  const lastJob = new Map<string, { jobId: string; startedAt: Date }>();
+  // Last-completed job id per project, so `getStatus` can report idle/failed
+  // with a stable jobId after completion.
+  const lastJob = new Map<
+    string,
+    { jobId: string; startedAt: Date; status: "idle" | "failed" }
+  >();
 
   function getStatus(projectId: string): JobStatusSnapshot | null {
     const live = inFlight.get(projectId);
@@ -73,22 +76,28 @@ export function createProjectionQueue(worker: ProjectWorker): ProjectionQueue {
     }
     const last = lastJob.get(projectId);
     if (last) {
-      return { jobId: last.jobId, status: "idle", startedAt: last.startedAt };
+      return { jobId: last.jobId, status: last.status, startedAt: last.startedAt };
     }
     return null;
   }
 
   async function runJob(projectId: string, job: InFlightJob): Promise<void> {
     job.status = "running";
+    let finalStatus: "idle" | "failed" = "idle";
     try {
       await worker(projectId);
     } catch {
-      // Worker failures are swallowed here — the queue's job is to serialize,
+      finalStatus = "failed";
+      // Worker failures are swallowed — the queue's job is to serialize,
       // not to enforce projection success. The projection layer records its
-      // own errors onto the project row. We still mark the job idle so a
-      // subsequent enqueue can start a fresh job.
+      // own errors onto the project row. We still track the failure in
+      // `lastJob` so `getStatus` can report it accurately.
     } finally {
-      lastJob.set(projectId, { jobId: job.jobId, startedAt: job.startedAt });
+      lastJob.set(projectId, {
+        jobId: job.jobId,
+        startedAt: job.startedAt,
+        status: finalStatus,
+      });
       inFlight.delete(projectId);
     }
   }
