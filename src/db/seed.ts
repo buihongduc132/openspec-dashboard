@@ -20,13 +20,14 @@ async function seed() {
   console.log("🌱 Seeding database...");
 
   // ─── Projects ──────────────────────────────────────────────────────────────
-  // The first project uses a deterministic id ("seed-project-1") so CI
-  // perf probes (k6 read-latency, index-freshness) can target it by a stable
-  // identifier via K6_PROJECT_ID / FRESHNESS_PROJECT_ID env.
+  // The first project uses a deterministic id (uuid5 of "seed-project-1")
+  // so CI perf probes (k6 read-latency, index-freshness) can target it by a
+  // stable identifier via K6_PROJECT_ID / FRESHNESS_PROJECT_ID env. The
+  // projects.id column is uuid-typed, so a slug string is not valid.
   const [proj] = await db
     .insert(projects)
     .values({
-      id: "seed-project-1",
+      id: "0205878f-2223-59d2-aaa4-4993775e92c4",
       name: "E-Commerce Platform",
       description: "Main e-commerce application with product catalog, cart, checkout, and user management.",
       rootPath: "/repos/ecommerce-platform",

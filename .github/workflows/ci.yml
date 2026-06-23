@@ -179,7 +179,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_db
       K6_BASE_URL: "http://localhost:3000"
       # Project id used by the seed data; overridden per-environment as needed.
-      K6_PROJECT_ID: "seed-project-1"
+      K6_PROJECT_ID: "0205878f-2223-59d2-aaa4-4993775e92c4"
     services:
       postgres:
         image: postgres:16-alpine
@@ -236,7 +236,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_db
       FRESHNESS_BASE_URL: "http://localhost:3000"
       # Project id used by the seed data; overridden per-environment as needed.
-      FRESHNESS_PROJECT_ID: "seed-project-1"
+      FRESHNESS_PROJECT_ID: "0205878f-2223-59d2-aaa4-4993775e92c4"
     services:
       postgres:
         image: postgres:16-alpine
