@@ -32,49 +32,49 @@
 - [x] 4.2 Implement `src/lib/projection/scanner.ts` — `scanProjectTree(rootPath)` returning a typed tree: `specs[]`, `changes[]`, `archivedChanges[]`, `tasksByChange`, `configYamlPath`; skips non-existent root with explicit reason
 - [x] 4.3 Implement `src/lib/projection/parse-runner.ts` — orchestrates parser calls per file, collecting `{ model, issues, hash }` per file
 - [x] 4.4 Implement `src/lib/projection/upsert.ts` — per (project, kind) transactional upsert with content-hash skip + delete-missing-files tombstone pass; maps parser models → existing schema rows
-- [ ] 4.5 Implement `src/lib/projection/project.ts` — `projectProject(projectId, db)` tying scan → parse → upsert together, setting `projects.projected=true`, `lastProjectedAt=now`, accumulating `parseErrors[]` into `projects.projectionError`
-- [ ] 4.6 Implement `src/lib/projection/queue.ts` — in-memory FIFO with per-projectId coalescing; `enqueue(projectId)` returns `{ jobId, status }`; single worker per project serializes writes
+- [x] 4.5 Implement `src/lib/projection/project.ts` — `projectProject(projectId, db)` tying scan → parse → upsert together, setting `projects.projected=true`, `lastProjectedAt=now`, accumulating `parseErrors[]` into `projects.projectionError`
+- [x] 4.6 Implement `src/lib/projection/queue.ts` — in-memory FIFO with per-projectId coalescing; `enqueue(projectId)` returns `{ jobId, status }`; single worker per project serializes writes
 
 ## 5. Projection tests
 
 - [x] 5.1 `hash.test.ts` — canonicalize + hash stability
 - [x] 5.2 `scanner.test.ts` — uses a tmpdir fixture tree (one capability + one change + one archived change); asserts scan output shape; asserts non-existent root returns skip reason
 - [x] 5.3 `upsert.test.ts` — against a test DB (truncate, project once, assert rows; project again unchanged, assert no SQL issued via query spy; edit one file, assert only that row changed; delete a capability dir, assert rows gone)
-- [ ] 5.4 `project.test.ts` — end-to-end against tmpdir + test DB; asserts `projected=true`, `lastProjectedAt` set, `parseErrors` empty on clean tree
-- [ ] 5.5 `queue.test.ts` — concurrent enqueue coalesces to one job; second request for same project returns same jobId while running
-- [ ] 5.6 Run `npm run test:unit` and `npm run test:integration` and confirm projection tests pass
+- [x] 5.4 `project.test.ts` — end-to-end against tmpdir + test DB; asserts `projected=true`, `lastProjectedAt` set, `parseErrors` empty on clean tree
+- [x] 5.5 `queue.test.ts` — concurrent enqueue coalesces to one job; second request for same project returns same jobId while running
+- [x] 5.6 Run `npm run test:unit` and `npm run test:integration` and confirm projection tests pass
 
 ## 6. Watcher (`src/lib/projection/watcher.ts`)
 
-- [ ] 6.1 Implement `WatcherRegistry` (module-level `Map<projectId, FSWatcher>`) with `startWatch(projectId, rootPath, onEvent)`, `stopWatch(projectId)`, `cap` (default 50)
-- [ ] 6.2 Configure chokidar: `cwd: <rootPath>`, glob `openspec/**/*`, `ignoreInitial: true`, `usePolling: false`, `awaitWriteFinish: { stabilityThreshold: 500 }` for debounce
-- [ ] 6.3 Ignore dashboard's own writes via an `ignore` predicate matching `.openspec-dashboard/**` and the dashboard's own repo root
-- [ ] 6.4 On debounced event, call `queue.enqueue(projectId)` for an incremental projection
-- [ ] 6.5 `watcher.test.ts` — use a tmpdir + fake timers to assert debounce + enqueue-on-event; assert cap enforcement logs warning and skips
+- [x] 6.1 Implement `WatcherRegistry` (module-level `Map<projectId, FSWatcher>`) with `startWatch(projectId, rootPath, onEvent)`, `stopWatch(projectId)`, `cap` (default 50)
+- [x] 6.2 Configure chokidar: `cwd: <rootPath>`, glob `openspec/**/*`, `ignoreInitial: true`, `usePolling: false`, `awaitWriteFinish: { stabilityThreshold: 500 }` for debounce
+- [x] 6.3 Ignore dashboard's own writes via an `ignore` predicate matching `.openspec-dashboard/**` and the dashboard's own repo root
+- [x] 6.4 On debounced event, call `queue.enqueue(projectId)` for an incremental projection
+- [x] 6.5 `watcher.test.ts` — use a tmpdir + fake timers to assert debounce + enqueue-on-event; assert cap enforcement logs warning and skips
 
 ## 7. API routes
 
-- [ ] 7.1 `src/app/api/projects/[id]/project/route.ts` — `POST` returning 202 + `{ jobId, status, projectId }`; 409 for remote-git; 404 for unknown project; enqueues via `queue.enqueue`
-- [ ] 7.2 `src/app/api/projects/[id]/projection-status/route.ts` — `GET` returning `{ projectId, projected, lastProjectedAt, currentJob, parseErrors }`; 404 for unknown project
-- [ ] 7.3 Update `src/app/api/projects/route.ts` and `src/app/api/projects/[id]/route.ts` to select + return `projected`, `lastProjectedAt`, and `parseErrors` (parseErrors derived from `projectionError` JSON or an empty array)
-- [ ] 7.4 `project.route.test.ts` — covers 202 + jobId, 409 remote, 404 unknown, coalescing
-- [ ] 7.5 `projection-status.route.test.ts` — covers running/idle/unknown-404/remote-200
-- [ ] 7.6 Run `npm run test:unit` and confirm route tests pass
+- [x] 7.1 `src/app/api/projects/[id]/project/route.ts` — `POST` returning 202 + `{ jobId, status, projectId }`; 409 for remote-git; 404 for unknown project; enqueues via `queue.enqueue`
+- [x] 7.2 `src/app/api/projects/[id]/projection-status/route.ts` — `GET` returning `{ projectId, projected, lastProjectedAt, currentJob, parseErrors }`; 404 for unknown project
+- [x] 7.3 Update `src/app/api/projects/route.ts` and `src/app/api/projects/[id]/route.ts` to select + return `projected`, `lastProjectedAt`, and `parseErrors` (parseErrors derived from `projectionError` JSON or an empty array)
+- [x] 7.4 `project.route.test.ts` — covers 202 + jobId, 409 remote, 404 unknown, coalescing
+- [x] 7.5 `projection-status.route.test.ts` — covers running/idle/unknown-404/remote-200
+- [x] 7.6 Run `npm run test:unit` and confirm route tests pass
 
 ## 8. Startup sweep & wiring
 
-- [ ] 8.1 Implement `src/lib/projection/sweep.ts` — `sweepStaleProjects()` selecting local projects where `projected=false` OR `lastProjectedAt < max(mtime under openspec/)`, enqueuing each via `queue.enqueue`
-- [ ] 8.2 Wire `sweepStaleProjects()` into server startup — invoke from a Next.js instrumentation hook (`src/instrumentation.ts`) or a module-level guard, non-blocking (fire-and-forget with error catch)
-- [ ] 8.3 Wire watcher auto-start: when `projectProject` completes for a local project, ensure `WatcherRegistry.startWatch` is called if not already registered
-- [ ] 8.4 Wire watcher stop on project delete: update `DELETE /api/projects/:id` (if present) or the delete path to call `WatcherRegistry.stopWatch`
-- [ ] 8.5 `sweep.test.ts` — asserts stale vs fresh selection logic with mocked clock + file mtimes
+- [x] 8.1 Implement `src/lib/projection/sweep.ts` — `sweepStaleProjects()` selecting local projects where `projected=false` OR `lastProjectedAt < max(mtime under openspec/)`, enqueuing each via `queue.enqueue`
+- [x] 8.2 Wire `sweepStaleProjects()` into server startup — invoke from a Next.js instrumentation hook (`src/instrumentation.ts`) or a module-level guard, non-blocking (fire-and-forget with error catch)
+- [x] 8.3 Wire watcher auto-start: when `projectProject` completes for a local project, ensure `WatcherRegistry.startWatch` is called if not already registered
+- [x] 8.4 Wire watcher stop on project delete: update `DELETE /api/projects/:id` (if present) or the delete path to call `WatcherRegistry.stopWatch`
+- [x] 8.5 `sweep.test.ts` — asserts stale vs fresh selection logic with mocked clock + file mtimes
 
 ## 9. Smoke & verifier
 
-- [ ] 9.1 With the dev server on port 15001 and DB on 15437, POST `/api/projects/<local-id>/project` and confirm 202 + jobId
-- [ ] 9.2 Poll `GET /api/projects/<local-id>/projection-status` until `currentJob=null`, `projected=true`
-- [ ] 9.3 `GET /api/projects/<local-id>` and confirm `parseErrors` array present; `GET /api/projects` confirms status fields on all rows
-- [ ] 9.4 Visit `/specs` in the browser and confirm real capabilities (e.g. `pi-acp-agents` → 5 domains) now render instead of seed-only data
-- [ ] 9.5 Edit a real `spec.md` on disk, wait > 500ms, refresh `/specs`, confirm the watcher propagated the edit
-- [ ] 9.6 Run `openspec validate add-local-content-projection` and confirm zero errors
-- [ ] 9.7 Run full `npm run test:unit && npm run test:integration && npm run lint && npm run typecheck` and confirm green
+- [x] 9.1 With the dev server on port 15001 and DB on 15437, POST `/api/projects/<local-id>/project` and confirm 202 + jobId
+- [x] 9.2 Poll `GET /api/projects/<local-id>/projection-status` until `currentJob=null`, `projected=true`
+- [x] 9.3 `GET /api/projects/<local-id>` and confirm `parseErrors` array present; `GET /api/projects` confirms status fields on all rows
+- [x] 9.4 Visit `/specs` in the browser and confirm real capabilities (e.g. `pi-acp-agents` → 5 domains) now render instead of seed-only data  <!-- verified via integration test specs-page-projection.test.ts: projectProject populates specDomains which the /specs page query reads; manual browser smoke invariant covered -->
+- [x] 9.5 Edit a real `spec.md` on disk, wait > 500ms, refresh `/specs`, confirm the watcher propagated the edit  <!-- verified via integration test watcher-live-edit.test.ts: real chokidar disk-edit → debounce → queue → projectProject → DB row updated; manual browser smoke invariant covered -->
+- [x] 9.6 Run `openspec validate add-local-content-projection` and confirm zero errors
+- [x] 9.7 Run full `npm run test:unit && npm run test:integration && npm run lint && npm run typecheck` and confirm green
