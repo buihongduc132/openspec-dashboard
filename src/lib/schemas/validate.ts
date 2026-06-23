@@ -18,8 +18,6 @@
  * Source: `flow/requirements/05-schemas.md` §5.7.
  */
 
-import * as path from "node:path";
-import * as fs from "node:fs";
 import { parse as parseYaml } from "yaml";
 
 /** Severity matches the upstream `openspec validate` contract. */
@@ -69,12 +67,51 @@ export function validateSchema(definition: string): SchemaValidationFinding[] {
 /**
  * Variant that resolves template paths relative to a base directory and
  * performs the on-disk existence check (req 05.7 AC b "Apply fix").
+ *
+ * Server-only: uses `node:fs`/`node:path` via a dynamic import so the pure
+ * `validateSchema(definition)` path stays importable from client bundles
+ * (Next.js tree-shakes the dynamic import out of the client chunk).
  */
-export function validateSchemaWithBase(
+export async function validateSchemaWithBase(
   definition: string,
   baseDir: string,
-): SchemaValidationFinding[] {
-  return validateSchemaIn(definition, baseDir);
+): Promise<SchemaValidationFinding[]> {
+  const findings = validateSchemaIn(definition, undefined);
+  const [{ default: fs }, path] = await Promise.all([
+    import("node:fs"),
+    import("node:path"),
+  ]);
+  let parsed: ParsedSchemaDefinition | undefined;
+  try {
+    const loaded = parseYaml(definition);
+    if (loaded && typeof loaded === "object") parsed = loaded as ParsedSchemaDefinition;
+  } catch {
+    // validateSchemaIn already emitted a syntax finding; nothing more to do.
+    return findings;
+  }
+  const artifacts = Array.isArray(parsed?.artifacts) ? parsed!.artifacts! : [];
+  for (const art of artifacts) {
+    const id = String(art.id ?? "");
+    if (art.template && String(art.template).trim().length > 0) {
+      const tplPath = path.resolve(baseDir, String(art.template));
+      let exists = false;
+      try {
+        if (fs.statSync(tplPath).isFile()) exists = true;
+      } catch {
+        exists = false;
+      }
+      if (!exists) {
+        findings.push({
+          ruleId: "schema.template-missing",
+          severity: "error",
+          artifactId: id,
+          message: `Artifact "${id}" references missing template file "${art.template}".`,
+          suggestedFix: `Create the template at ${art.template}.`,
+        });
+      }
+    }
+  }
+  return findings;
 }
 
 function validateSchemaIn(
@@ -208,41 +245,20 @@ function validateSchemaIn(
     });
   }
 
-  // 5. Template file existence (when a base dir is provided).
-  if (baseDir) {
-    for (const art of artifacts) {
+  // 5. Template declarations: emit a warning so callers know they were not
+  //    verified on disk. The on-disk stat is NOT performed here so
+  //    `validateSchema` stays a pure, client-safe function; use
+  //    `validateSchemaWithBase` for the stat check (server-only).
+  for (const art of artifacts) {
+    if (art.template && String(art.template).trim().length > 0) {
       const id = String(art.id ?? "");
-      if (art.template && String(art.template).trim().length > 0) {
-        const tplPath = path.resolve(baseDir, String(art.template));
-        try {
-          if (!fs.statSync(tplPath).isFile()) {
-            throw new Error("not a file");
-          }
-        } catch {
-          findings.push({
-            ruleId: "schema.template-missing",
-            severity: "error",
-            artifactId: id,
-            message: `Artifact "${id}" references missing template file "${art.template}".`,
-            suggestedFix: `Create the template at ${art.template}.`,
-          });
-        }
-      }
-    }
-  } else {
-    // Without a base dir we still surface template declarations as warnings
-    // so callers know they were not checked on disk.
-    for (const art of artifacts) {
-      if (art.template && String(art.template).trim().length > 0) {
-        const id = String(art.id ?? "");
-        findings.push({
-          ruleId: "schema.template-missing",
-          severity: "error",
-          artifactId: id,
-          message: `Artifact "${id}" references missing template file "${art.template}".`,
-          suggestedFix: `Create the template at ${art.template}.`,
-        });
-      }
+      findings.push({
+        ruleId: "schema.template-missing",
+        severity: "error",
+        artifactId: id,
+        message: `Artifact "${id}" references template file "${art.template}" (not verified on disk without a base dir).`,
+        suggestedFix: `Verify the template exists at ${art.template}.`,
+      });
     }
   }
 

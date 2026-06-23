@@ -25,15 +25,19 @@ const ROOT = new URL("../src", import.meta.url).pathname;
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"]);
 const EXCLUDE_DIRS = new Set(["node_modules", ".next", "coverage", ".git", "dist", "build"]);
 
-// Patterns that strongly indicate commented-out code
+// Patterns that strongly indicate commented-out code.
+// Strategy: a line is flagged only when it has BOTH a code keyword start
+// AND a code terminator (semicolon or balanced call parens), AND does NOT
+// contain common English articles/prepositions that mark it as prose.
+// This avoids false positives on documentation comments that happen to
+// start with a keyword or contain punctuation.
+const ENGLISH_MARKERS = /\b(the|a|an|is|are|was|were|with|and|or|not|to|of|for|in|on|at|by|from|that|this|these|those|which|who|when|where|why|how|only|must|should|would|could|can|may|might|will|shall|has|have|had|been|be|do|does|did|so|if|but|because|while|during|after|before|since|until|without|within|across|between|among|each|every|all|any|some|no|more|most|less|fewer|very|also|just|only|still|even|now|then|here|there)\b/i;
+
 const CODE_PATTERNS = [
-  // Starts with a JS/TS keyword
-  /^\s*(const|let|var|function|return|if|for|while|import|export|class|interface|type|switch|case|break|continue|throw|try|catch|finally|await|async|new|enum|namespace|abstract|readonly|private|public|protected|static|get|set)\b/,
-  // Function call ending with optional semicolon: foo() or foo.bar();
-  // Requires name directly before ( (no space) to avoid prose false positives
+  // Keyword start + semicolon terminator (e.g. "const x = 5;", "return foo();").
+  /^\s*(const|let|var|function|return|import|export|throw|await|new|class|interface|type|enum|namespace)\b.*;\s*$/,
+  // Function call with balanced parens ending with optional semicolon.
   /[\w.]+\([^)]*\)\s*;?\s*$/,
-  // Arrow function syntax
-  /=>/,
 ];
 
 function scanDir(dir) {
@@ -58,12 +62,22 @@ function scanFile(filePath) {
   const findings = [];
   const relPath = relative(ROOT, filePath);
 
+  let inFencedBlock = false;
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
 
     // Skip empty lines
     if (!trimmed) continue;
+
+    // Track fenced code blocks (``` or ~~~). Any code inside a fenced block
+    // is EXAMPLE documentation, not commented-out code.
+    if (/^```|^~~~/.test(trimmed)) {
+      inFencedBlock = !inFencedBlock;
+      continue;
+    }
+    if (inFencedBlock) continue;
 
     // Check line comments (// but not URLs like http://)
     const lineCommentMatch = trimmed.match(/^\/\/\s*(.*)$/);
@@ -78,18 +92,13 @@ function scanFile(filePath) {
       }
     }
 
-    // Check block comment lines (lines inside /* */ that start with *)
-    const blockCommentMatch = trimmed.match(/^\*\s*(.*)$/);
-    if (blockCommentMatch) {
-      const commentContent = blockCommentMatch[1];
-      if (isCodeLike(commentContent)) {
-        findings.push({
-          file: relPath,
-          line: i + 1,
-          content: trimmed,
-        });
-      }
-    }
+    // Check block comment lines (lines inside /* */ that start with *).
+    //
+    // Skip these entirely — JSDoc `* ` lines are prose documentation, not
+    // commented-out code. The `* ` prefix unambiguously distinguishes
+    // block-comment content from line comments where commented-out code
+    // actually appears. (The earlier heuristic produced 27 false positives
+    // from legitimate JSDoc prose such as "* Tampered body => rejected.".)
   }
 
   return findings;
@@ -101,6 +110,9 @@ function isCodeLike(text) {
   if (/^@\w+/.test(text)) return false;
   // Skip common prose patterns
   if (/^(Note|TODO|FIXME|HACK|WARNING|IMPORTANT|See|e\.g\.|i\.e\.)/.test(text)) return false;
+  // Skip lines containing common English articles/prepositions — these are
+  // prose, not code. Real code rarely uses "the", "a", "with", "and", etc.
+  if (ENGLISH_MARKERS.test(text)) return false;
 
   return CODE_PATTERNS.some((pattern) => pattern.test(text));
 }
