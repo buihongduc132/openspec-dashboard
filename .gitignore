@@ -40,6 +40,10 @@ auth.json
 credentials.json
 service-account*.json
 
+# Local config overrides (may carry connection strings / API keys)
+config.local.yaml
+config.local.yml
+
 # Dashboard-private metadata (contains user/project data)
 openspec/.dashboard/
 **/.dashboard/

@@ -109,4 +109,47 @@ describe("threat model v1 (NFR-11)", () => {
     // Spec scenario: "the Phase 0 gate review is logged".
     expect(text).toMatch(/Phase 0 (?:milestone )?gate|gate review/i);
   });
+
+  // Task 8.2 / spec requirement "Phase 0 surfaces have concrete mitigations":
+  // every Phase-0-IN-CODE surface (registration allowlist, atomic writes, audit
+  // chain) MUST map to a concrete spec requirement + task, not a placeholder.
+  describe.each([
+    {
+      key: "registration-allowlist",
+      surface: /path[- ]?allowlist|allowlist/i,
+      citation: /task 1\.\d|filesystem-projection spec/i,
+    },
+    {
+      key: "atomic-writes",
+      surface: /atomic write/i,
+      citation: /filesystem-projection spec|task 1\.\d|temp\+rename|temp \+ rename/i,
+    },
+    {
+      key: "audit-chain",
+      surface: /audit[- ]?chain/i,
+      citation: /task 5\.\d|NFR-10|audit-chain spec/i,
+    },
+  ])("in-code surface: $key", ({ surface, citation }) => {
+    it("is cited with a concrete spec/task mitigation (not a placeholder)", () => {
+      const text = doc();
+      expect(text, `${surface} surface not named`).toMatch(surface);
+      expect(
+        text,
+        `${surface} has no concrete spec/task mitigation citation`,
+      ).toMatch(citation);
+    });
+  });
+
+  it("treats the audit hash-chain as a Phase-0 [IN CODE] threat surface (chain tampering) with a concrete mitigation", () => {
+    const text = doc();
+    // Per spec scenario "Registration path-traversal threat has a mapped
+    // mitigation" and the general rule: Phase-0 in-code surfaces must map to a
+    // concrete artifact, not "to be designed". The audit chain is a Phase-0
+    // in-code surface (NFR-10) and must have its own [IN CODE] treatment.
+    expect(text).toMatch(
+      /audit[- ]?chain[\s\S]*\[IN CODE\]|\[IN CODE\][\s\S]*audit[- ]?chain/i,
+    );
+    expect(text).toMatch(/tamper/i);
+    expect(text).toMatch(/verifier|quarantine/i);
+  });
 });

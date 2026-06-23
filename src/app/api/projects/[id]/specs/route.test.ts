@@ -54,13 +54,14 @@ describe("GET /api/projects/[id]/specs — read endpoint (task 1.11)", () => {
       { id: "d1", projectId: PROJECT_ID, name: "dashboard-foundation", purpose: "engine" },
       { id: "d2", projectId: PROJECT_ID, name: "tasks-kanban", purpose: "board" },
     ];
-    RESULTS = [projectRow, domains];
+    RESULTS = [projectRow, domains, []]; // project, domains, all-specs (none)
     vi.doMock("@/db", mockDb);
     const { GET } = await import("@/app/api/projects/[id]/specs/route");
     const res = await GET(reqWith(PROJECT_ID), { params: Promise.resolve({ id: PROJECT_ID }) });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual(domains);
+    // Task 6.3: each domain carries its (here empty) projection-populated specs.
+    expect(body).toEqual(domains.map((d) => ({ ...d, specs: [] })));
   });
 
   it("rejects direct main-spec mutations with 405 (req 02 §2.3 — propose-via-change only)", async () => {

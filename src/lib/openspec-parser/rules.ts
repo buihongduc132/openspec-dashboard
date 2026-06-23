@@ -1,14 +1,19 @@
 /**
- * Task 1.7 — Documented upstream rules + gap registry (NFR-5).
+ * Task 3.5 — Documented-rule enumeration of upstream OpenSpec Markdown
+ * constructs the parser implements (NFR-5).
  *
- * NFR-5 requires the parser to ship (a) an enumerated list of the documented
- * upstream rules it implements and (b) a gap registry of upstream constructs it
- * cannot confirm from documentation. Encountering an unregistered construct
- * during parse SHALL append it to the gap registry and continue parsing.
+ * This module ships an enumerated list of the documented upstream rules the
+ * parser recognises. Each rule is a stable id + description. Add a new entry
+ * only when the parser actively recognises the construct; anything observed in
+ * the wild that is NOT in this list goes into the gap registry
+ * (see `./gap-registry.ts`).
  *
- * Source: `openspec/changes/build-openspec-dashboard-mvp/specs/
- * dashboard-foundation/spec.md` (Requirement "OpenSpec parser port") and the
- * detailed rule spec in `add-local-content-projection/specs/openspec-parser`.
+ * This is intentionally separate from the gap-registry data structure so the
+ * rule list can remain a static enumeration while the registry evolves
+ * (dedupe, persistence) independently.
+ *
+ * Source: `openspec/changes/phase0-foundations/specs/openspec-parser/spec.md`,
+ * Requirement "Documented-rule enumeration and gap registry (NFR-5)".
  */
 
 /** One documented upstream rule the parser implements. */
@@ -95,67 +100,3 @@ export const DOCUMENTED_RULES: readonly DocumentedRule[] = [
 export const DOCUMENTED_RULE_IDS: ReadonlySet<string> = new Set(
   DOCUMENTED_RULES.map((r) => r.id),
 );
-
-/** A single gap-registry entry. */
-export interface GapEntry {
-  /** File the unrecognised construct was observed in. */
-  file: string;
-  /** 1-based line when known. */
-  line?: number;
-  /** Free-form description of the observed construct. */
-  construct: string;
-  /** Nearest documented rule id the construct resembles, if any. */
-  nearestRule?: string;
-}
-
-/**
- * Mutable gap registry. Constructs are appended as they are encountered; the
- * registry is passed by reference so callers can read it after parsing.
- */
-export interface GapRegistry {
-  entries: GapEntry[];
-  /** Append a new gap observation (no-op if a duplicate already exists). */
-  record: (entry: GapEntry) => void;
-}
-
-/** Construct a fresh, empty gap registry. */
-export function createGapRegistry(): GapRegistry {
-  const entries: GapEntry[] = [];
-  const seen = new Set<string>();
-  return {
-    entries,
-    record(entry) {
-      const key = `${entry.file}|${entry.line ?? -1}|${entry.construct}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      entries.push(entry);
-    },
-  };
-}
-
-/** YAML front-matter keys the documented rules explicitly recognise. */
-const KNOWN_FRONTMATTER_KEYS: ReadonlySet<string> = new Set([
-  "schema",
-  "defaultSchema",
-  "created",
-]);
-
-/**
- * Inspect a parsed front-matter block and record any keys not covered by the
- * documented rules into the gap registry (NFR-5).
- */
-export function recordUnknownFrontmatter(
-  file: string,
-  keys: Record<string, unknown>,
-  gap: GapRegistry,
-): void {
-  for (const key of Object.keys(keys)) {
-    if (!KNOWN_FRONTMATTER_KEYS.has(key)) {
-      gap.record({
-        file,
-        construct: `frontmatter-key:${key}`,
-        nearestRule: "frontmatter.block",
-      });
-    }
-  }
-}

@@ -9,6 +9,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOKS_DIR="$ROOT/.githooks"
 
+# `prepare` (npm) runs this on every `npm install`. Bail out gracefully when
+# invoked outside a git working tree (e.g. tarball install, some CI images)
+# so dependency installation never fails just because hooks can't be wired.
+if ! git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "skip: $ROOT is not a git work tree — gitleaks hooks not wired."
+  exit 0
+fi
+
 if [ ! -d "$HOOKS_DIR" ]; then
   echo "ERROR: $HOOKS_DIR not found" >&2
   exit 1

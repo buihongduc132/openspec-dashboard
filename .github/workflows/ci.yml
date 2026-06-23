@@ -94,6 +94,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml
+      # Spec (secret-hygiene-gate): the CI scan SHALL cover history AND the
+      # working tree. The gitleaks-action step above scans commit history; this
+      # DISTINCT step scans the checked-out working tree without relying on
+      # git history (`--no-git`), so an uncommitted secret staged via a PR is
+      # caught even if it never lands in a scanned commit object.
+      - name: Gitleaks working-tree scan (no-git)
+        run: |
+          gitleaks detect --no-git --source . --config .gitleaks.toml --redact --verbose
 
   dead-code:
     name: Dead Code Detection

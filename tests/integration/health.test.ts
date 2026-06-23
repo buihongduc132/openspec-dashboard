@@ -8,10 +8,12 @@ import { GET } from "@/app/api/health/route";
 import { callGet } from "./helpers";
 
 describe("GET /api/health (integration)", () => {
-  it("returns { ok: true } when DB is reachable", async () => {
+  it("returns status ok and the parser version when DB is reachable", async () => {
     const res = await callGet(GET, "/api/health");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.ok).toBe(true);
+    expect(body.status).toBe("ok");
+    expect(typeof body.parserVersion).toBe("string");
+    expect(typeof body.timestamp).toBe("string");
   });
 });

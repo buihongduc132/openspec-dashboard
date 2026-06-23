@@ -13,13 +13,23 @@
  * deterministically. The filesystem I/O composes {@link writeFileAtomic}
  * (task 1.8) at the route layer.
  */
-import { join } from "node:path";
 import { randomUUID as nodeRandomUUID } from "node:crypto";
+import {
+  resolveSidecar,
+  sidecarLocation,
+} from "@/lib/projection/sidecar";
 
 // ─── Schema constants ───────────────────────────────────────────────────────
 
-/** Canonical sidecar directory under an OpenSpec project root. */
-export const SIDECAR_DIR = "openspec/.dashboard/tasks";
+/**
+ * Canonical sidecar directory under an OpenSpec project root, composed from
+ * the single {@link SIDECAR_LOCATION} constant (design D0-5) so a constant
+ * flip relocates the task sidecar atomically with every other sidecar
+ * consumer. Captured at module load (callers needing a snapshot of the
+ * directory string use this); the {@link sidecarPath} resolver reads the
+ * constant at CALL time so it honors a D0-5 flip applied after load.
+ */
+export const SIDECAR_DIR = `${sidecarLocation()}tasks`;
 
 /** Sidecar schema version (bump + migrator-on-load if format evolves). */
 export const SIDECAR_VERSION = 1 as const;
@@ -58,10 +68,14 @@ export type UuidFactory = (index: number) => string;
 
 /**
  * Absolute path of a change's sidecar file:
- * `<projectRoot>/openspec/.dashboard/tasks/<change>.json`.
+ * `<projectRoot>/<SIDECAR_LOCATION>tasks/<change>.json`.
+ *
+ * Reads through the single {@link SIDECAR_LOCATION} constant (via
+ * {@link resolveSidecar}) so D0-5's atomic-relocation contract holds: change
+ * ONLY the constant and this path relocates with everything else.
  */
 export function sidecarPath(projectRoot: string, change: string): string {
-  return join(projectRoot, SIDECAR_DIR, `${change}.json`);
+  return resolveSidecar(projectRoot, `tasks/${change}.json`);
 }
 
 /** Create an empty sidecar for `change` (no tasks yet). */
