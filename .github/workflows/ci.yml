@@ -149,7 +149,7 @@ jobs:
       - name: Apply DB schema (drizzle push)
         run: npx drizzle-kit push --config drizzle.config.json
       - name: Seed database
-        run: node --experimental-strip-types src/db/seed.ts
+        run: node scripts/ci-seed.mjs
       - name: Build the Next.js app for Lighthouse measurement
         run: npm run build
       - name: Lighthouse CI — cold FCP gate (<= 1500ms, NFR-1)
@@ -204,7 +204,7 @@ jobs:
       - name: Apply DB schema (drizzle push)
         run: npx drizzle-kit push --config drizzle.config.json
       - name: Seed database
-        run: node --experimental-strip-types src/db/seed.ts
+        run: node scripts/ci-seed.mjs
       - name: Build the Next.js app for read-latency measurement
         run: npm run build
       - name: Start Next.js server (background)
@@ -261,7 +261,7 @@ jobs:
       - name: Apply DB schema (drizzle push)
         run: npx drizzle-kit push --config drizzle.config.json
       - name: Seed database
-        run: node --experimental-strip-types src/db/seed.ts
+        run: node scripts/ci-seed.mjs
       - name: Build the Next.js app for index-freshness measurement
         run: npm run build
       - name: Start Next.js server (background)
