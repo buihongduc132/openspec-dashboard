@@ -4,6 +4,14 @@ import { projects } from "@/db/schema";
 import { withProjectionStatus } from "@/lib/projection/status-fields";
 
 /**
+ * Task 6.2 — reads MUST reflect out-of-band disk edits without a server
+ * restart (api-foundation spec scenario "Reads reflect out-of-band disk
+ * edits"). Force dynamic rendering so Next.js never serves a stale,
+ * statically-generated project list.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * Task 7.3 — list every project with the projection-status envelope
  * (`projected`, `lastProjectedAt`, `parseErrors`) merged onto each row.
  * Remote-git and un-projected projects report `projected=false`,

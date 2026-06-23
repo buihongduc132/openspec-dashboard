@@ -18,10 +18,12 @@
 import {
   DOCUMENTED_RULES,
   DOCUMENTED_RULE_IDS,
+} from "./rules";
+import {
   createGapRegistry,
   recordUnknownFrontmatter,
   type GapRegistry,
-} from "./rules";
+} from "./gap-registry";
 import type {
   ChangeArtifacts,
   ChangeModel,
@@ -44,10 +46,20 @@ export type { RequirementBlock, Scenario, TaskItem, SpecModel, DeltaSpec, Config
 export {
   DOCUMENTED_RULES,
   DOCUMENTED_RULE_IDS,
+} from "./rules";
+export {
   createGapRegistry,
   recordUnknownFrontmatter,
-} from "./rules";
-export type { GapRegistry, GapEntry, DocumentedRule } from "./rules";
+} from "./gap-registry";
+export type { GapRegistry, GapEntry } from "./gap-registry";
+export type { DocumentedRule } from "./rules";
+
+/**
+ * Version of the in-tree OpenSpec parser port (req 08 §8.1 — exposed via the
+ * health endpoint). Bumped when the parser grammar/semantics change in a
+ * way consumers can observe. Follows semver within Phase 0.
+ */
+export const PARSER_VERSION = "0.1.0";
 
 // ─── Options ────────────────────────────────────────────────────────────────
 

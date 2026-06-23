@@ -23,6 +23,8 @@ paths = [
   "package-lock.json",
   # This very test file plants a fake AWS key on purpose.
   "src/lib/secret-hygiene/gitleaks-config.test.ts",
+  # Sibling test plants a fake GCP API key for the hook behavioural suite (Task 7.2).
+  "src/lib/secret-hygiene/gitleaks-hooks.test.ts",
   # Test fixtures with fake webhook signing secrets.
   "src/lib/webhooks/inbound.test.ts",
 ]

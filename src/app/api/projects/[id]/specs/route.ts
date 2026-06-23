@@ -9,8 +9,8 @@
  */
 import { NextRequest } from "next/server";
 import { db } from "@/db";
-import { projects, specDomains } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { projects, specDomains, specs } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 export async function GET(
@@ -23,7 +23,25 @@ export async function GET(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
   const domains = await db.select().from(specDomains).where(eq(specDomains.projectId, id));
-  return Response.json(domains);
+  // Task 6.3 — surface the projection-populated specs nested under each
+  // domain (api-foundation spec: "list spec domains + specs for a project").
+  // Reading the projection tables live + force-dynamic (task 6.2) means
+  // out-of-band disk edits surface on the next GET without a restart. Filter
+  // by this project's domain ids so we never pull another project's specs.
+  const domainIds = domains.map((d) => d.id);
+  const domainSpecs =
+    domainIds.length === 0
+      ? []
+      : await db.select().from(specs).where(inArray(specs.domainId, domainIds));
+  const specsByDomain = new Map<string, typeof domainSpecs>();
+  for (const s of domainSpecs) {
+    const list = specsByDomain.get(s.domainId) ?? [];
+    list.push(s);
+    specsByDomain.set(s.domainId, list);
+  }
+  return Response.json(
+    domains.map((d) => ({ ...d, specs: specsByDomain.get(d.id) ?? [] })),
+  );
 }
 
 /**

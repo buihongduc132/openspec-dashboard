@@ -26,7 +26,9 @@ const PROJECT_ID = __ENV.K6_PROJECT_ID || "seed-project-1";
 // k6's init context allows reading bundled files. In CI this file is passed
 // with `--include-scenarios` / the working directory contains the config; for
 // local k6 runs executed from the repo root, the relative path resolves.
-const cfg = JSON.parse(open("./k6-read-latency.config.json"));
+// NOTE: k6 resolves open() relative to the SCRIPT FILE's directory
+// (tests/load/), not the CWD. The config lives at repo root.
+const cfg = JSON.parse(open("../../k6-read-latency.config.json"));
 
 // --- k6 options: thresholds that FAIL the run on NFR-2 breach ---------------
 // Strict '<' (k6 threshold semantics): a measured value EQUAL to the line

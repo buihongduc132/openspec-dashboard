@@ -160,6 +160,30 @@ export function buildOpenApiDocument(): OpenApiDocument {
           },
         },
       },
+      [`${API_PREFIX}/__stub/mutate`]: {
+        post: {
+          summary: "Phase-1-stand-in mutation (temporary)",
+          description:
+            "POST stand-in that exercises the ETag (INV-7) + audit-emission " +
+            "(NFR-10) + quarantine-gate middleware chain end-to-end before " +
+            "Phase 1 wires real mutating endpoints (design D0-7). REMOVED at " +
+            "the Phase 1 boundary; the `__stub` namespace makes removal greppable.",
+          operationId: "stubMutate",
+          tags: ["stub"],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": { schema: ref("StubMutationRequest") },
+            },
+          },
+          responses: {
+            "200": okResponse("Mutation accepted (echoes payload)", "StubMutationResponse"),
+            "409": okResponse("If-Match conflict (stale section version)", "ErrorResponse"),
+            "428": okResponse("Missing If-Match header", "ErrorResponse"),
+            "503": okResponse("Deployment in read-only quarantine (audit-chain break)", "ErrorResponse"),
+          },
+        },
+      },
     },
     components: {
       schemas: {
@@ -230,6 +254,27 @@ export function buildOpenApiDocument(): OpenApiDocument {
           type: "object",
           description: "An OpenAPI 3.1 document.",
         },
+        StubMutationRequest: {
+          type: "object",
+          description:
+            "Body for the temporary POST /api/__stub/mutate stand-in (D0-7).",
+          properties: {
+            projectId: { type: "string" },
+            actor: { type: "string" },
+            entity: { type: "string" },
+            payload: {},
+          },
+        },
+        StubMutationResponse: {
+          type: "object",
+          required: ["ok", "stub"],
+          properties: {
+            ok: { type: "boolean" },
+            stub: { type: "boolean" },
+            projectId: { type: "string" },
+            payload: {},
+          },
+        },
       },
     },
     tags: [
@@ -237,6 +282,7 @@ export function buildOpenApiDocument(): OpenApiDocument {
       { name: "projects", description: "Project registration + reads (req 01)." },
       { name: "specs", description: "Spec-domain reads (req 02)." },
       { name: "changes", description: "Change reads (req 03)." },
+      { name: "stub", description: "Temporary Phase-1-stand-in mutation route (D0-7); removed at the Phase 1 boundary." },
     ],
   };
 }
@@ -275,12 +321,19 @@ export interface OpenApiResponseObject {
   content?: Record<string, { schema: OpenApiSchemaObject | OpenApiReference }>;
 }
 
+export interface OpenApiRequestBodyObject {
+  description?: string;
+  required?: boolean;
+  content: Record<string, { schema: OpenApiSchemaObject | OpenApiReference }>;
+}
+
 export interface OpenApiOperationObject {
   summary?: string;
   description?: string;
   operationId: string;
   tags?: string[];
   parameters?: OpenApiParameterObject[];
+  requestBody?: OpenApiRequestBodyObject;
   responses: Record<string, OpenApiResponseObject>;
 }
 

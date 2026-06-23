@@ -100,10 +100,41 @@ interface RegisteredWatcher {
   onEvent: WatchEventCallback;
   /** Resolves once chokidar's `ready` event fires (inotify watches set up). */
   ready: Promise<void>;
+  /**
+   * In-process set of just-written absolute paths (design D0-2). The atomic-
+   * write layer announces a path BEFORE its rename via {@link markSelfWrite};
+   * the 'all' handler consumes the marker on the next event for that path so
+   * the watcher never re-reconciles its own write (spec scenario "Watcher
+   * self-write suppression").
+   */
+  selfWrite: Set<string>;
 }
 
 // Module-level registry (design D3: keyed by projectId).
 const registry = new Map<string, RegisteredWatcher>();
+
+/**
+ * ProjectIds whose watcher has died (chokidar `error`/unexpected close). The
+ * health endpoint reads this to emit a `degraded` indicator (api-foundation
+ * spec scenario "Health degrades gracefully on a watcher failure") rather
+ * than reporting fully ok.
+ */
+const unhealthy = new Set<string>();
+
+/** ProjectIds whose filesystem watcher has died since startup. */
+export function unhealthyWatchers(): string[] {
+  return [...unhealthy];
+}
+
+/** Mark a watcher as unhealthy (called on chokidar error/close). */
+function markUnhealthy(projectId: string): void {
+  unhealthy.add(projectId);
+}
+
+/** Clear the unhealthy set (test helper / shutdown). */
+export function resetUnhealthyWatchers(): void {
+  unhealthy.clear();
+}
 
 /** Number of watchers currently registered. */
 export function watcherCount(): number {
@@ -147,6 +178,7 @@ export function startWatch(
     watcher: null as unknown as FSWatcher,
     timer: null,
     onEvent,
+    selfWrite: new Set<string>(),
     // Overwritten below once the chokidar `ready` promise is created.
     ready: Promise.resolve(),
   };
@@ -183,10 +215,19 @@ export function startWatch(
   const ready = new Promise<void>((resolve) => {
     watcher.once("ready", () => resolve());
   });
-  watcher.on("all", () => debounce());
+  watcher.on("all", (_event, filePath) => {
+    // Self-write suppression (spec scenario "Watcher self-write suppression",
+    // design D0-2): if the atomic-write layer just renamed this file, consume
+    // the marker and skip the debounced reconciliation entirely.
+    if (filePath && consumeSelfWrite(entry, filePath)) return;
+    debounce();
+  });
   // chokidar emits `error` events (e.g. ENOSPC inotify limit). Without a
-  // listener Node treats them as unhandled and crashes the process.
+  // listener Node treats them as unhandled and crashes the process. An error
+  // also means the watcher is no longer reliably observing the tree, so mark
+  // the project unhealthy for the /health degraded indicator.
   watcher.on("error", (err) => {
+    markUnhealthy(projectId);
     console.warn(
       `WatcherRegistry: chokidar error for "${projectId}" —`,
       err,
@@ -211,6 +252,8 @@ export async function stopWatch(projectId: string): Promise<void> {
     entry.timer = null;
   }
   registry.delete(projectId);
+  // An explicit stop is an intentional teardown, not a death — do NOT mark
+  // unhealthy (only chokidar errors / unexpected close do that).
   await entry.watcher.close().catch(() => {
     /* ignore — closing a half-dead watcher is best-effort */
   });
@@ -233,7 +276,60 @@ export async function stopAllWatchers(): Promise<void> {
   await Promise.all(ids.map(stopWatch));
 }
 
+/**
+ * Normalize an absolute path for cross-platform self-write marker comparison
+ * (chokidar emits forward slashes; path.resolve uses platform separators).
+ */
+function normalizeAbs(absolutePath: string): string {
+  return absolutePath.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+
+/**
+ * Announce that the server is about to atomically write `absolutePath` for
+ * `projectId` (design D0-2). The next chokidar event for that path is
+ * suppressed so the watcher does not redundantly reconcile its own write.
+ *
+ * `absolutePath` MUST be absolute (resolved against the project root). The
+ * atomic-write layer is expected to call this immediately BEFORE the rename.
+ */
+export function markSelfWrite(projectId: string, absolutePath: string): void {
+  const entry = registry.get(projectId);
+  if (!entry) return;
+  entry.selfWrite.add(normalizeAbs(absolutePath));
+}
+
+/** Whether a self-write marker is currently pending for `absolutePath`. */
+export function isSelfWriteMarked(
+  projectId: string,
+  absolutePath: string,
+): boolean {
+  const entry = registry.get(projectId);
+  return entry ? entry.selfWrite.has(normalizeAbs(absolutePath)) : false;
+}
+
+/** Manually clear a self-write marker (e.g. if the write was rolled back). */
+export function clearSelfWrite(
+  projectId: string,
+  absolutePath: string,
+): void {
+  const entry = registry.get(projectId);
+  if (!entry) return;
+  entry.selfWrite.delete(normalizeAbs(absolutePath));
+}
+
+/**
+ * Consume a pending self-write marker for `filePath` (which may be relative
+ * to the watcher's `cwd`). Returns `true` when a marker was present and
+ * consumed (the event should be suppressed), `false` otherwise.
+ */
+function consumeSelfWrite(entry: RegisteredWatcher, filePath: string): boolean {
+  if (entry.selfWrite.size === 0) return false;
+  const absolute = normalizeAbs(path.resolve(entry.rootPath, filePath));
+  return entry.selfWrite.delete(absolute);
+}
+
 /** Drop all registry entries WITHOUT closing watchers (test helper). */
 export function resetWatcherRegistry(): void {
   registry.clear();
+  unhealthy.clear();
 }
