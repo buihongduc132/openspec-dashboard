@@ -16,14 +16,21 @@ type ThemeProviderState = {
 const ThemeProviderContext = React.createContext<ThemeProviderState | undefined>(undefined);
 
 export function ThemeProvider({ children, defaultTheme = "system" }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(defaultTheme);
+  // Lazy initializer reads localStorage once on the client (guarded for SSR),
+  // avoiding a synchronous setState inside an effect (react-hooks rule).
+  const [theme, setThemeState] = React.useState<Theme>(() => {
+    if (typeof window === "undefined") return defaultTheme;
+    try {
+      const stored = localStorage.getItem("openspec-theme") as Theme | null;
+      return stored ?? defaultTheme;
+    } catch {
+      return defaultTheme;
+    }
+  });
 
   React.useEffect(() => {
-    const stored = localStorage.getItem("openspec-theme") as Theme | null;
-    const initial = stored ?? defaultTheme;
-    setThemeState(initial);
-    applyTheme(initial);
-  }, [defaultTheme]);
+    applyTheme(theme);
+  }, [theme]);
 
   const setTheme = React.useCallback((t: Theme) => {
     setThemeState(t);

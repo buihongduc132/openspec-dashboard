@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
+import { withProjectionStatus } from "@/lib/projection/status-fields";
 
+/**
+ * Task 7.3 — list every project with the projection-status envelope
+ * (`projected`, `lastProjectedAt`, `parseErrors`) merged onto each row.
+ * Remote-git and un-projected projects report `projected=false`,
+ * `lastProjectedAt=null`, and an empty `parseErrors` array.
+ */
 export async function GET() {
   const allProjects = await db.select().from(projects);
-  return NextResponse.json(allProjects);
+  return NextResponse.json(allProjects.map((p) => withProjectionStatus(p)));
 }
 
 export async function POST(req: NextRequest) {
