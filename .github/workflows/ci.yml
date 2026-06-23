@@ -147,7 +147,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - name: Apply DB schema (drizzle push)
-        run: npx drizzle-kit push --url "${{ env.DATABASE_URL }}"
+        run: npx drizzle-kit push --config drizzle.config.json
       - name: Seed database
         run: node --experimental-strip-types src/db/seed.ts
       - name: Build the Next.js app for Lighthouse measurement
@@ -202,7 +202,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - name: Apply DB schema (drizzle push)
-        run: npx drizzle-kit push --url "${{ env.DATABASE_URL }}"
+        run: npx drizzle-kit push --config drizzle.config.json
       - name: Seed database
         run: node --experimental-strip-types src/db/seed.ts
       - name: Build the Next.js app for read-latency measurement
@@ -259,7 +259,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - name: Apply DB schema (drizzle push)
-        run: npx drizzle-kit push --url "${{ env.DATABASE_URL }}"
+        run: npx drizzle-kit push --config drizzle.config.json
       - name: Seed database
         run: node --experimental-strip-types src/db/seed.ts
       - name: Build the Next.js app for index-freshness measurement
